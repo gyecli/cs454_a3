@@ -12,7 +12,7 @@
 
 #include "rpc.h"
 
-#define PORT "9034"   // port we're listening on
+#define MAX_CLIENTS 10
 
 using namespace std;
 
@@ -36,9 +36,13 @@ int main(void)
     int newfd;        // newly accept()ed socket descriptor
     struct sockaddr_storage remoteaddr; // client address
     socklen_t addrlen;
+    char hostName[128];   // host name of local machine
 
     char buf[256];    // buffer for client data
     int nbytes;
+
+    struct sockaddr_in addr;
+    int s_len;
 
     char remoteIP[INET6_ADDRSTRLEN];
 
@@ -51,47 +55,45 @@ int main(void)
     FD_ZERO(&read_fds);
 
     // get us a socket and bind it
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
-    if ((rv = getaddrinfo(NULL, PORT, &hints, &ai)) != 0) {
-        fprintf(stderr, "selectserver: %s\n", gai_strerror(rv));
-        exit(1);
+          ////////////
+    //******************************************************************
+    // get a free port
+    listener = socket(PF_INET, SOCK_STREAM, 0);
+
+    if(listener == 0)
+    {
+        cerr << "ERROR listen" << endl;
+        exit(-1);
     }
 
-    for(p = ai; p != NULL; p = p->ai_next) {
-        listener = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-        if (listener < 0) {
-            continue;
-        }
+    addr.sin_family = AF_INET;
+    addr.sin_port = 0;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    s_len = sizeof(addr);
 
-        // lose the pesky "address already in use" error message
-        setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
-
-        if (bind(listener, p->ai_addr, p->ai_addrlen) < 0) {
-            close(listener);
-            continue;
-        }
-
-        break;
+    if(bind(listener, (struct sockaddr *)&addr, sizeof(addr))<0)
+    {
+        cerr << "ERROR bind" << endl;
+        exit(-1);
+    }
+    if(listen(listener, MAX_CLIENTS))  // max 5 conns
+    {
+        cerr << "ERROR listen: too many client coneection requests" << endl;
+        exit(-1);
     }
 
-    // if we got here, it means we didn't get bound
-    if (p == NULL) {
-        fprintf(stderr, "selectserver: failed to bind\n");
-        exit(2);
+    if(getsockname(listener, (struct sockaddr*)&addr, (socklen_t*)&s_len ) == -1)
+    {
+        cerr << "ERROR getsockname" << endl;
+        exit(-1);
     }
 
-    freeaddrinfo(ai); // all done with this
+    gethostname(hostName, sizeof(hostName));
 
-    //*************************************************************************
-    // listen
-    if (listen(listener, 10) == -1) {
-        perror("listen");
-        exit(3);
-    }
+    cout << "BINDER_ADDRESS " << hostName << endl;
+    cout << "BINDER_PORT " << ntohs(addr.sin_port) << endl;
 
+    //*********************************************************************************
     // add the listener to the master set
     FD_SET(listener, &master);
 
@@ -102,7 +104,7 @@ int main(void)
     for(;;) {
         read_fds = master; // copy it
         if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
-            perror("select");
+            cerr << "ERROR select" << endl;
             exit(4);
         }
 
@@ -113,22 +115,22 @@ int main(void)
                     // handle new connections
                     addrlen = sizeof remoteaddr;
                     newfd = accept(listener,
-                        (struct sockaddr *)&remoteaddr,
-                        &addrlen);
+                                  (struct sockaddr *)&remoteaddr,
+                                  &addrlen);
 
                     if (newfd == -1) {
-                        perror("accept");
+                        cerr << "ERROR accept" << endl;
                     } else {
                         FD_SET(newfd, &master); // add to master set
                         if (newfd > fdmax) {    // keep track of the max
                             fdmax = newfd;
                         }
-                        printf("selectserver: new connection from %s on "
-                            "socket %d\n",
-                            inet_ntop(remoteaddr.ss_family,
-                                get_in_addr((struct sockaddr*)&remoteaddr),
-                                remoteIP, INET6_ADDRSTRLEN),
-                            newfd);
+                        //printf("selectserver: new connection from %s on "
+                        //    "socket %d\n",
+                        //    inet_ntop(remoteaddr.ss_family,
+                        //        get_in_addr((struct sockaddr*)&remoteaddr),
+                        //        remoteIP, INET6_ADDRSTRLEN),
+                        //    newfd);
                     }
                 } else {
                     // handle data from a client
@@ -136,9 +138,9 @@ int main(void)
                         // got error or connection closed by client
                         if (nbytes == 0) {
                             // connection closed
-                            printf("selectserver: socket %d hung up\n", i);
+                            cout << "selectserver: socket %d hung up\n" << i << endl;
                         } else {
-                            perror("recv");
+                            cerr << "ERROR recv()" << endl;
                         }
                         close(i); // bye!
                         FD_CLR(i, &master); // remove from master set
@@ -150,7 +152,7 @@ int main(void)
                                 // except the listener and ourselves
                                 if (j != listener && j != i) {
                                     if (send(j, buf, nbytes, 0) == -1) {
-                                        perror("send");
+                                        cerr << "ERROR send" << endl;
                                     }
                                 }
                             }
