@@ -1,54 +1,15 @@
-//
 
 
-
-struct REGISTER 
-{
-	int length;
-	int type;
-	char* server_id;
-	char* server_port; 
-	char* name; 
-	int* argTypes; 
-};
-
-struct LOC_REQUEST
-{
-	int length; 
-	int types;
-	char* name; 
-	int* argTypes; 
-};
-
-struct LOC_SUCCESS
-{
-	int length; 
-	int type; 
-	char* server_id;
-	char* server_port;
-};
+#define REGISTER 1
+#define LOC_REQUEST 2
+#define LOC_SUCCESS 3
+#define EXECUTE 4
+#define EXECUTE_SUCCESS 5
+#define FAILURE -1
 
 
-struct EXECUTE
-{
-	int length; 
-	int type; 
-	int* argTypes; 
-	void **args; 
-};
+#define IO_mask (3 << 30)
+#define Type_mask (255 << 16)
+#define Length_mask 255
 
-struct EXECUTE_SUCCESS
-{
-	int length; 
-	int type; 
-	char* name; 
-	int* argTypes; 
-	void** args; 
-};
-
-struct FAILURE
-{
-	int length; 
-	int type; 
-	int reasonCode; 
-};
+//define reasonCode here
