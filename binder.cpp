@@ -12,7 +12,10 @@
 
 #include "rpc.h"
 
-#define MAX_CLIENTS 10
+#define MAX_CLIENTS 20
+
+#define REGISTER 1          // Type of requests from servers
+#define LOC_REQUEST 2       // Type of requests from clients
 
 using namespace std;
 
@@ -25,8 +28,8 @@ void *get_in_addr(struct sockaddr *sa)
 
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
-
-int main(void)
+//////////////////////////////////////////////////////////////////////////////////////////////////
+int binderInit(void)
 {
     fd_set master;    // master file descriptor list
     fd_set read_fds;  // temp file descriptor list for select()
@@ -38,7 +41,7 @@ int main(void)
     socklen_t addrlen;
     char hostName[128];   // host name of local machine
 
-    char buf[256];    // buffer for client data
+    char buf[8];    // buffer for first 8 bytes
     int nbytes;
 
     struct sockaddr_in addr;
@@ -54,8 +57,6 @@ int main(void)
     FD_ZERO(&master);    // clear the master and temp sets
     FD_ZERO(&read_fds);
 
-    // get us a socket and bind it
-          ////////////
     //******************************************************************
     // get a free port
     listener = socket(PF_INET, SOCK_STREAM, 0);
@@ -114,9 +115,7 @@ int main(void)
                 if (i == listener) {
                     // handle new connections
                     addrlen = sizeof remoteaddr;
-                    newfd = accept(listener,
-                                  (struct sockaddr *)&remoteaddr,
-                                  &addrlen);
+                    newfd = accept(listener, (struct sockaddr *)&remoteaddr, &addrlen);
 
                     if (newfd == -1) {
                         cerr << "ERROR accept" << endl;
@@ -125,12 +124,12 @@ int main(void)
                         if (newfd > fdmax) {    // keep track of the max
                             fdmax = newfd;
                         }
-                        //printf("selectserver: new connection from %s on "
-                        //    "socket %d\n",
-                        //    inet_ntop(remoteaddr.ss_family,
-                        //        get_in_addr((struct sockaddr*)&remoteaddr),
-                        //        remoteIP, INET6_ADDRSTRLEN),
-                        //    newfd);
+                        printf("selectserver: new connection from %s on "
+                            "socket %d\n",
+                            inet_ntop(remoteaddr.ss_family,
+                                get_in_addr((struct sockaddr*)&remoteaddr),
+                                remoteIP, INET6_ADDRSTRLEN),
+                            newfd);
                     }
                 } else {
                     // handle data from a client
@@ -146,15 +145,27 @@ int main(void)
                         FD_CLR(i, &master); // remove from master set
                     } else {
                         // we got some data from a client
-                        for(j = 0; j <= fdmax; j++) {
-                            // send to everyone!
-                            if (FD_ISSET(j, &master)) {
-                                // except the listener and ourselves
-                                if (j != listener && j != i) {
-                                    if (send(j, buf, nbytes, 0) == -1) {
-                                        cerr << "ERROR send" << endl;
-                                    }
-                                }
+                        string str(buf);
+                        int length, type;
+
+                        s1 = str.substr(0, 4);
+                        s2 = str.substr(4,4);
+
+                        length = atoi (s1.c_str());
+                        type = atoi (s2.c_str());
+
+                        if (type == REGISTER) {
+                            // It's a register request from server
+                            // register to the DB
+
+                        } else if (type == LOC_REQUEST) {
+                            // It's a location request from client
+                            // DB lookup
+                        }
+                        if (FD_ISSET(i, &master) && i != listener) {
+                            // except the listener
+                            if (send(i, buf, nbytes, 0) == -1) {
+                                cerr << "ERROR send" << endl;
                             }
                         }
                     }
