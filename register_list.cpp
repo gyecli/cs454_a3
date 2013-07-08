@@ -7,7 +7,7 @@
 
 #include "my_rpc.h"
 
-
+#define array_size_mask ((1<<17)-1)
 
 const int SIZE_IDENTIFIER = 100; 
 const int SIZE_PORTNO = 16; 
@@ -47,8 +47,18 @@ public:
 
         for(int i=0; i<this->argNum; ++i)
         {
-            if(this->argTypes[i] != other.argTypes[i])
-                return false; 
+            if( (this->argTypes[i]>>16) != (other.argTypes[i]>>16))
+                return false;
+            else
+            {
+                int len1, len2; 
+                len1 = (this->argTypes[i])&array_size_mask; 
+                len2 = (other.argTypes[i])&array_size_mask; 
+                
+                if( (len1 == 1 && len2 != 1) ||
+                    (len2 != 1 && len2 ==1 ))
+                    return false; 
+            }
         }
         return true; 
     }
