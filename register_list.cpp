@@ -5,6 +5,15 @@
 #include <list>
 #include <utility> 
 
+#include "my_rpc.h"
+
+
+
+const int SIZE_IDENTIFIER = 100; 
+const int SIZE_PORTNO = 16; 
+const int SIZE_NAME = 100; 
+
+
 using namespace std; 
 class Prosig; 
 class BinderDB; 
@@ -20,16 +29,15 @@ public:
     //might not be a good idea to make all fields public
     //will make it like this for now, for the sake of simplicity 
 
-    Prosig(string name, int argNum):name(name),argNum(argNum)
+    Prosig(string name, int argNum, int* argTypes):name(name),argNum(argNum), argTypes(argTypes)
     {
-        argTypes = new int[argNum]; 
     }
 
     ~Prosig()
     {
         delete [] argTypes;
     }
-    
+
     bool operator==(const Prosig &other) const 
     {
         if(this->name != other.name)
@@ -47,40 +55,140 @@ public:
     
 };
 
-typedef pair<char*, char*> server;
-
-class BinderDB
+//server
+class Server
 {
-public: 
-    list<class Prosig, list<server> > database; 
-    void Add(Prosig function, char* server_id, char* portno)
+public:
+    char* identifier; 
+    char* portno; 
+
+    Server(char* identifier, char* portno): identifier(identifier),portno(portno)
     {
-        server thisServer(server_id, portno); 
-        //if(true)
-        if(database.count(function))
-        {
-            //such funtion has already exist 
-            //from at least one server
-            list<server> currentList = database[function]; 
-            list<server>::iterator findIter = find(currentList.begin(), currentList.end(), thisServer);
-            if(findIter = currentList.end())
-            {
-                //the server is already in the list, do nothing but return
-                return; 
-            }
-            else
-            {
-                currentList.push_front(thisServer);
-            }
-        }
-        else
-        {
-            //first time to see such a function
-            list<server> serverList; 
-            serverList.push_front(thisServer);
-            database.insert(make_pair(function, serverList));
-        }
+    }
+
+    bool operator == (const Server &other) const
+    {
+        int n; 
+        //compare the memory pointed 
+        n = memcmp(this->portno, other.portno, SIZE_PORTNO);
+        if(n != 0)
+            return false; 
+        n = memcmp(this->identifier, other.identifier, SIZE_IDENTIFIER);
+        if(n != 0)
+            return false;
+        return true; 
+    }
+
+    ~Server()
+    {
+        delete [] identifier;
+        delete [] portno; 
     }
 };
 
+//procedure location 
+typedef pair<Prosig, Server> ProLoc; 
+
+//binder database
+class BinderDB
+{
+public: 
+    list<ProLoc> database; 
+
+    int Register(Prosig function, Server ser)
+    {
+        list<ProLoc>::iterator it = SearchAll(function, ser); 
+        if(it == database.end())
+        {
+            //first time for this server to register this function 
+            database.push_back(ProLoc(function, ser));
+        }
+        //else
+            //server already registed this function before
+            //no need to do else 
+
+        return REGISTER_SUCCESS; 
+    }
+
+    list<ProLoc>::iterator SearchAll(Prosig function, Server ser)
+    {
+        for(list<ProLoc>::iterator it=database.begin(); it!=database.end(); ++it)
+        {
+            if(function == it->first && ser == it->second)
+            {
+               return it; 
+            }
+        }
+        return database.end(); 
+    }
+
+    bool Search(Prosig function, Server *ser)
+    {
+        for(list<ProLoc>::iterator it=database.begin(); it!=database.end(); ++it)
+        {
+            if(function == it->first)
+            {
+                *ser = it->second;
+                return true; 
+            }
+        }
+        return false; 
+    }
+};
+
+int getTypeLength(int* argTypes) {
+    int size = 0;
+    int* it = argTypes;
+    while (*it != 0) {
+        size += 4;
+        it = it+1;
+    }
+    return (size +4);
+}
+
+int BinderRegister()
+{
+
+}
+
+int main()
+{
+    BinderDB db;
+    char size_buff[4];
+    char type_buff[4];    
+    char* buff;
+    char* received; 
+    uint32_t type, size;
+
+    //wrap
+
+    //TODO: all memcpy will be replace by socket read
+    //unwrap 
+    memcpy(size_buff, received, 4);
+    size = atoi(size_buff);
+    memcpy(type_buff, received+4, 4);
+    type = atoi(type_buff);
+    
+
+    switch(type)
+    {
+        case REGISTER:
+            char server_id[SIZE_IDENTIFIER]; 
+            char portno[SIZE_PORTNO]; 
+            char name[SIZE_NAME];
+            memcpy(server_id, received + 8, SIZE_IDENTIFIER); 
+            memcpy(portno, received + 8 + SIZE_IDENTIFIER, SIZE_PORTNO); 
+            memcpy(name, received + 8 + SIZE_IDENTIFIER + SIZE_PORTNO, SIZE_NAME); 
+
+            int used_size = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME; 
+            buff = new char[size - used_size]; 
+            memcpy(buff, received + 8 + used_size, size - used_size);
+            int* argTypes = (int*)buff; 
+
+            Prosig pro = Prosig(string(name), getTypeLength(argTypes), argTypes);
+            Server ser = Server(server_id, portno);
+            db.Register(pro, ser); 
+            break;
+    }
+}
 

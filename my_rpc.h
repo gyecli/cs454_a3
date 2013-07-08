@@ -15,3 +15,6 @@
 #define Length_mask 255			// OR 65535 (NOT SURE, becasue it's last 2 bytes)
 
 //define reasonCode here	
+
+//added by Yiyao 
+#define REGISTER_SUCCESS 0; 
