@@ -8,7 +8,6 @@
 #include "my_rpc.h"
 
 
-
 const int SIZE_IDENTIFIER = 100; 
 const int SIZE_PORTNO = 16; 
 const int SIZE_NAME = 100; 
@@ -61,6 +60,14 @@ class Server
 public:
     char* identifier; 
     char* portno; 
+
+    //TODO: not sure if I need a copy constructor / assignment function 
+    Server()
+    {
+        //TODO: not sure if i should initialize them
+        //identifier = new char[SIZE_NAME]; 
+        //portno = new char[portno]; 
+    }
 
     Server(char* identifier, char* portno): identifier(identifier),portno(portno)
     {
@@ -136,6 +143,8 @@ public:
     }
 };
 
+//TODO: repetitive with Tim's code
+//should put it in some kind of library file 
 int getTypeLength(int* argTypes) {
     int size = 0;
     int* it = argTypes;
@@ -144,6 +153,11 @@ int getTypeLength(int* argTypes) {
         it = it+1;
     }
     return (size +4);
+}
+
+void package(int type, char* msg)
+{
+
 }
 
 int BinderRegister()
@@ -156,7 +170,6 @@ int main()
     BinderDB db;
     char size_buff[4];
     char type_buff[4];    
-    char* buff;
     char* received; 
     uint32_t type, size;
 
@@ -181,7 +194,7 @@ int main()
             memcpy(name, received + 8 + SIZE_IDENTIFIER + SIZE_PORTNO, SIZE_NAME); 
 
             int used_size = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME; 
-            buff = new char[size - used_size]; 
+            char* buff = new char[size - used_size]; 
             memcpy(buff, received + 8 + used_size, size - used_size);
             int* argTypes = (int*)buff; 
 
@@ -189,6 +202,27 @@ int main()
             Server ser = Server(server_id, portno);
             db.Register(pro, ser); 
             break;
+        case LOC_REQUEST:
+            char name[SIZE_NAME];
+            char* buff = new char[size - SIZE_NAME]; 
+            int result; 
+
+            memcpy(name, received + 8, SIZE_NAME);
+            memcpy(buff, received + 8 + SIZE_NAME, size - SIZE_NAME); 
+            Server *ser = new Server(); 
+            result = Search(Prosig(), Server *ser)
+            if(result == true)
+            {
+                //TODO: not right on passing variables
+                //ser won't be copied correctly 
+                package(LOC_SUCCESS, ser);
+            }
+            else
+            {
+                package(LOC_FAILURE, NULL); 
+            }
+
+
     }
 }
 
