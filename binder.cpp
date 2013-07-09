@@ -52,11 +52,11 @@ int binderInit(void)
     struct sockaddr_in addr;
     int s_len;
 
-    char remoteIP[INET6_ADDRSTRLEN];
+    //char remoteIP[INET6_ADDRSTRLEN];
 
-    int i, j, rv;
+    int i;
 
-    struct addrinfo hints, *ai, *p;
+    //struct addrinfo hints, *ai, *p;
 
     FD_ZERO(&master);    // clear the master and temp sets
     FD_ZERO(&read_fds);
@@ -190,6 +190,8 @@ int binderRegister(char* received, int size)
     Prosig pro = Prosig(string(name), getTypeLength(argTypes), argTypes);
     Server ser = Server(server_id, portno);
     db.Register(pro, ser); 
+
+    return 0;   // TODO: havn't figured out return type 
 }
 
 int main()
