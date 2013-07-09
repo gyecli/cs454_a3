@@ -1,4 +1,5 @@
-// Please put the rcp functions here
+// This file has all the rpc funcitons
+
 #include <iostream>
 #include <string>
 #include <cstring>
@@ -20,6 +21,10 @@
 
 using namespace std;
 
+const int SIZE_IDENTIFIER = 128;  
+const int SIZE_PORTNO = 2;              // TO_DO: 2 bytes OR 4 bytes     
+const int SIZE_NAME = 100; 
+
 int rpcInit();
 int rpcCall(char* name, int* argTypes, void** args);
 int rpcCacheCall(char* name, int* argTypes, void** args);
@@ -28,9 +33,9 @@ int rpcExecute();
 int rpcTerminate();
 
 
-char server_id[128];
-char server_port[2]; 
-char rcv_name[100];
+char server_id[SIZE_IDENTIFIER];
+char server_port[SIZE_PORTNO]; 
+char rcv_name[SIZE_NAME];
 //char* rcv_argTypes;
 //char** rcv_args; 
 char reasonCode; 
@@ -55,8 +60,7 @@ int getArgsLength(int* argTypes) {
         // Type_mask = (255 << 16)
 		unsigned int current_type = ((*it) & Type_mask) >> 16; 
 
-        // TO_DO: Length_mask is not sure
-		unsigned int num = ((*it) & Length_mask);  // # of current arg of current_type
+		unsigned int num = ((*it) & array_size_mask);  // # of current arg of current_type
 		if (num == 0) {
 			num = 1; 
 		}
@@ -108,7 +112,7 @@ void extract_args(char *buffer, int *argTypes, void** args) {
     while(argTypes[i] != 0) {          // last element of argTypes is always ZERO
         // Type_mask = (255 << 16)
         unsigned int current_type = ((argTypes[j]) & Type_mask) >> 16; 
-        unsigned int num = ((argTypes[j]) & Length_mask);  // # of current arg of current_type
+        unsigned int num = ((argTypes[j]) & array_size_mask);  // # of current arg of current_type
         int flag = 0; 
         if (num == 0) {
             num = 1; 
@@ -226,7 +230,7 @@ void pack(char* buffer, int* argTypes, void** args) {
     while(argTypes[j] != 0) {          // last element of argTypes is always ZERO
         // Type_mask:  (255 << 16)
         unsigned int current_type = (argTypes[j] & Type_mask) >> 16; 
-        unsigned int num = ((argTypes[j]) & Length_mask);  // # of current arg of current_type
+        unsigned int num = ((argTypes[j]) & array_size_mask);  // # of current arg of current_type
         
         int flag = 0; 
 
@@ -409,14 +413,14 @@ int rpcCall(char* name, int* argTypes, void** args) {
     }
 
     // send LOC_REQUEST message to Binder
-    int msgLen = (100 + getTypeLength(argTypes));  // name, argTypes
+    int msgLen = (SIZE_NAME + getTypeLength(argTypes));  // name, argTypes
     char buffer[msgLen + 8];
     unsigned int requestType = LOC_REQUEST;
 
     memcpy(buffer, &msgLen, 4);                 // first 4 bytes stores length of msg
     memcpy(buffer+4, &requestType, 4);          // next 4 bytes stores types info
-    memcpy(buffer+8, name, 100);                // and then msg = name + argTypes
-    memcpy(buffer+108, argTypes, getTypeLength(argTypes)); 
+    memcpy(buffer+8, name, SIZE_NAME);                // and then msg = name + argTypes
+    memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
 
     // send LOC_REQUEST msg to Binder
     if (send(sockfd, buffer, msgLen+8, 0) == -1) {
@@ -440,12 +444,12 @@ int rpcCall(char* name, int* argTypes, void** args) {
 
     	if (type == LOC_SUCCESS) {                 
     		// now extract server name (128 bytes) and server port (2 bytes)
-    		char rcv_buffer[130];
-    		recv(sockfd, rcv_buffer, 130, 0);
-    		char server_id[128];
-    		char server_port[2]; 
-    		memcpy(server_id, rcv_buffer, 128); 
-    		memcpy(server_port, rcv_buffer+128, 2); 
+    		char rcv_buffer[SIZE_IDENTIFIER + SIZE_PORTNO];
+    		recv(sockfd, rcv_buffer, (SIZE_IDENTIFIER + SIZE_PORTNO), 0);
+    		char server_id[SIZE_IDENTIFIER];
+    		char server_port[SIZE_PORTNO]; 
+    		memcpy(server_id, rcv_buffer, SIZE_IDENTIFIER); 
+    		memcpy(server_port, rcv_buffer+SIZE_IDENTIFIER, SIZE_PORTNO); 
 
     		close(sockfd); 
 
@@ -461,9 +465,9 @@ int rpcCall(char* name, int* argTypes, void** args) {
     		char buffer[8 + messageLen];
     		memcpy(buffer, &messageLen, 4);
     		memcpy(buffer+4, &requestType, 4);
-    		memcpy(buffer+8, name, 100); 
-    		memcpy(buffer+108, argTypes, getTypeLength(argTypes)); 
-            memcpy(buffer+108+getTypeLength(argTypes), args, getArgsLength(argTypes));
+    		memcpy(buffer+8, name, SIZE_NAME); 
+    		memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
+            memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), args, getArgsLength(argTypes));
 
             // send EXECUTE request to server
     		if (send(sockfd, buffer, messageLen+8, 0) == -1) {
@@ -498,21 +502,20 @@ int rpcCall(char* name, int* argTypes, void** args) {
                     pack(rcv_buffer2, new_argTypes, new_args); 
 
                     memcpy(args, new_args, getArgsLength(argTypes));
-                    //extract_args(rcv_buffer, argTypes, args);  //argTypes & args are from rpcCall 
 
                     close(sockfd);  
 
                     return RPCCALL_SUCCESS;
-                } else if (type == FAILURE) {
+                } else if (type == EXECUTE_FAILURE) {
                     cout << "EXECUTE FAILURE" << endl;
-                    return RPCCALL_FAILURE;
+                    return RPCCALL_FAILURE;           // TO_DO: should return EXECUTE_FAILURE??
                 } else {
                     cout << "Should not come here 1" << endl;
                 }
             }
-    	} else if (type == FAILURE) {
+    	} else if (type == LOC_FAILURE) {
             cout << "LOC FAILURE" << endl;
-            return RPCCALL_FAILURE;
+            return RPCCALL_FAILURE;         // TO_DO: should return EXECUTE_FAILURE??
     	} else {
             cout << "Shoudl not come here 2" << endl; 
         }
@@ -542,7 +545,7 @@ int rpcExecute(void) {
     int newfd;        // newly accept()ed socket descriptor
     struct sockaddr_storage remoteaddr; // client address
     socklen_t addrlen;
-    char hostName[128];   // host name of local machine
+    char hostName[SIZE_IDENTIFIER];   // host name of local machine
 
     char buf[8];    // buffer for first 8 bytes
     int nbytes;
@@ -672,12 +675,12 @@ int rpcExecute(void) {
                         // skeleton search_skel(char* name, int* argTypes)
                         char * name = new char[100]; 
                         memcpy(name, rcvMsg, 100);    // TO-DO: sth wrong here  
-                        rcvMsg += 100; 
+                        char* newRcvMsg = rcvMsg + 100; 
 
                         int *argTypes;
                         void** args; 
 
-                        pack(rcvMsg, argTypes, args); 
+                        pack(newRcvMsg, argTypes, args); 
                         
                         skeleton skel_func = search_skel(name, argTypes);
                         skel_func(argTypes, args);

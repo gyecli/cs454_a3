@@ -37,7 +37,9 @@ public:
 
     bool operator==(const Prosig &other) const 
     {
-        if(this->name != other.name)
+        // TO_DO: not a proper string comparison??
+        //        (commented by Tim)
+        if(this->name != other.name)   
             return false;
         if(this->argNum != other.argNum)
             return false;
