@@ -7,11 +7,13 @@
 #define EXECUTE_SUCCESS 5
 #define FAILURE 0
 
+#define RPCCALL_SUCCESS 0
+#define RPCCALL_FAILURE -1
 
 #define IO_mask (3 << 30)
 #define Input_mask (1 << 31)
 #define Output_mask (1 << 30)
 #define Type_mask (255 << 16)
-#define Length_mask 255			// OR 65535 (NOT SURE, becasue it's last 2 bytes)
+#define Length_mask 65535			// OR 65535 (NOT SURE, becasue it's last 2 bytes)
 
 //define reasonCode here	
