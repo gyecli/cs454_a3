@@ -313,7 +313,7 @@ void pack(char* buffer, int* argTypes, void** args) {
 //////////////////////////////////////////////////////////////////////////////////////////
 // Helper function to create a connection 
 // return 0 on success, negative number on failure
-int connection(char* hostname, char* port, int sockfd) {
+int connection(const char* hostname, const char* port, int sockfd) {
 	struct addrinfo hints, *servinfo, *p;
     int rv;
 
@@ -488,7 +488,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
                 
                 if (type == EXECUTE_SUCCESS) {         
                     
-                    char *rcv_buffer2[len];
+                    char rcv_buffer2[len];
                     if (recv(sockfd, rcv_buffer2, len, 0) < 0) {
 
                     }
@@ -658,9 +658,9 @@ int rpcExecute(void) {
                         memcpy(rcv_len, buf, 4); 
                         memcpy(rcv_type, buf+4, 4); 
 
-                        int len = atoi(*rcv_len);  
-                        int type = atoi(*rcv_type);
-                        char *rcvMsg[len];
+                        int len = atoi(rcv_len);  
+                        int type = atoi(rcv_type);
+                        char rcvMsg[len];
 
                         if (recv(i, rcvMsg, len, 0) < 0) {
                             cerr << "ERROR in receiving msg from client" << endl;
