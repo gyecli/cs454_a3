@@ -197,7 +197,6 @@ int binderRegister(char* received, int size)
     db.Register(pro, ser); 
 }
 
-
 int main()
 {
     binderInit();
