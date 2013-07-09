@@ -18,9 +18,7 @@
 
 #include "rpc.h"
 
-//TODO: manage include files  
 
-using namespace std;
 
 int rpcInit()
 {
@@ -67,4 +65,9 @@ int rpcInit()
 
     cout<<"connection!"<<endl;
 
+}
+
+int main()
+{
+    rpcInit();
 }
