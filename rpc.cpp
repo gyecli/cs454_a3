@@ -1,6 +1,7 @@
 // Please put the rcp functions here
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <stdlib.h>
 #include <cstdlib>
 #include <cassert>
@@ -55,7 +56,7 @@ int getArgsLength(int* argTypes) {
 		unsigned int current_type = ((*it) & Type_mask) >> 16; 
 
         // TO_DO: Length_mask is not sure
-		unsigned int num = ((*it) & Length_mask)  // # of current arg of current_type
+		unsigned int num = ((*it) & Length_mask);  // # of current arg of current_type
 		if (num == 0) {
 			num = 1; 
 		}
@@ -107,7 +108,7 @@ void extract_args(char *buffer, int *argTypes, void** args) {
     while(argTypes[i] != 0) {          // last element of argTypes is always ZERO
         // Type_mask = (255 << 16)
         unsigned int current_type = ((argTypes[j]) & Type_mask) >> 16; 
-        unsigned int num = ((argTypes[j]) & Length_mask)  // # of current arg of current_type
+        unsigned int num = ((argTypes[j]) & Length_mask);  // # of current arg of current_type
         int flag = 0; 
         if (num == 0) {
             num = 1; 
@@ -204,7 +205,7 @@ void pack(char* buffer, int* argTypes, void** args) {
     argTypes = new int[num+1];
 
     int i = 0; 
-    char* it = buffer; 
+    it = buffer;        // it re-points to the start of buffer
     for ( ; atoi(it) != 0; it = it+4) {
         argTypes[i] = atoi(it); 
         i++; 
@@ -213,13 +214,19 @@ void pack(char* buffer, int* argTypes, void** args) {
     argTypes[i] = 0; 
     argLen = getArgsLength(argTypes); 
 
-    args = new (void*)[num * sizeof(void *)];           // TO_DO: not sure here
+    args = new void* [num * sizeof(void *)];           // TO_DO: not sure here
 
     int j = 0; 
+    char *temp1;
+    short *temp2; 
+    int *temp3; 
+    long *temp4;
+    double *temp5;
+    float *temp6;
     while(argTypes[j] != 0) {          // last element of argTypes is always ZERO
         // Type_mask:  (255 << 16)
         unsigned int current_type = (argTypes[j] & Type_mask) >> 16; 
-        unsigned int num = ((*temp) & Length_mask)  // # of current arg of current_type
+        unsigned int num = ((argTypes[j]) & Length_mask);  // # of current arg of current_type
         
         int flag = 0; 
 
@@ -231,19 +238,19 @@ void pack(char* buffer, int* argTypes, void** args) {
         switch(current_type) {
             case ARG_CHAR:
                 // type: char
-                char *temp2 = new char[num];
-                memcpy(temp2, it, len);
+                temp1 = new char[num];
+                memcpy(temp1, it, 1*num);
                 if (flag == 1) {
-                    args[j] = (void *) &(*temp2); 
+                    args[j] = (void *) &(*temp1); 
                 } else {
-                    arg[j] = new char[num];
-                    args[j] = (void *) temp2; 
+                    args[j] = new char[num];
+                    args[j] = (void *) temp1; 
                 }
                 it += num; 
                 break; 
             case ARG_SHORT:
                 // type: short
-                short *temp2 = new short[num]
+                temp2 = new short[num];
                 memcpy (temp2, it, 2*num); 
                 if(flag == 1) {
                     args[j] = (void *) &(*temp2); 
@@ -255,41 +262,45 @@ void pack(char* buffer, int* argTypes, void** args) {
                 break;
             case ARG_INT:
                 // type: int
-                int *temp2 = new int[num]
+                temp3 = new int[num];
                 if(flag == 1) {
-                    args[j] = (void *) &(*temp2); 
+                    args[j] = (void *) &(*temp3); 
                 } else {
-                    args[j] = (void *) temp2; 
+                    args[j] = new int[num];
+                    args[j] = (void *) temp3; 
                 }
                 it += 4*num;
                 break;
             case ARG_LONG:
                 // type: long
-                long *temp2 = new long[num]
+                temp4 = new long[num];
                 if(flag == 1) {
-                    args[j] = (void *) &(*temp2); 
+                    args[j] = (void *) &(*temp4); 
                 } else {
-                    args[j] = (void *) temp2; 
+                    args[j] = new long[num];
+                    args[j] = (void *) temp4; 
                 }
                 it += 4*num;
                 break;
             case ARG_DOUBLE:
                 // type: double
-                double *temp2 = new double[num]
+                temp5 = new double[num];
                 if(flag == 1) {
-                    args[j] = (void *) &(*temp2); 
+                    args[j] = (void *) &(*temp5); 
                 } else {
-                    args[j] = (void *) temp2; 
+                    args[j] = new double[num];
+                    args[j] = (void *) temp5; 
                 }
                 it += 8*num;
                 break; 
             case ARG_FLOAT:
                 // type: float
-                int *temp2 = new int[num]
+                temp6 = new float[num];
                 if(flag == 1) {
-                    args[j] = (void *) &(*temp2); 
+                    args[j] = (void *) &(*temp6); 
                 } else {
-                    args[j] = (void *) temp2; 
+                    args[j] = new float[num];
+                    args[j] = (void *) temp6; 
                 }
                 it += 4*num;
                 break;
@@ -301,7 +312,8 @@ void pack(char* buffer, int* argTypes, void** args) {
 }
 //////////////////////////////////////////////////////////////////////////////////////////
 // Helper function to create a connection 
-void connection(char* hostname, char* port, int sockfd) {
+// return 0 on success, negative number on failure
+int connection(char* hostname, char* port, int sockfd) {
 	struct addrinfo hints, *servinfo, *p;
     int rv;
 
@@ -311,7 +323,7 @@ void connection(char* hostname, char* port, int sockfd) {
         
     if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0) {
         cerr << "getaddrinfo: " << gai_strerror(rv) << endl;
-        return 1;
+        return -1; 
     }
     // loop through all the results and connect to the first we can
     for(p = servinfo; p != NULL; p = p->ai_next) {
@@ -335,9 +347,11 @@ void connection(char* hostname, char* port, int sockfd) {
     }
 
     freeaddrinfo(servinfo); // all done with this structure
+
+    return 0; 
 }
 //////////////////////////////////////////////////////////////////////////////////////////
-void receiveMsg(int msgLen, int msgType, int sockfd) {
+/*void receiveMsg(int msgLen, int msgType, int sockfd) {
     
     int numbytes = recv(sockfd, rcv_buffer, msgLen, 0);
     if (numbytes <= 0) {
@@ -376,7 +390,7 @@ void receiveMsg(int msgLen, int msgType, int sockfd) {
     } else if (msgType == 0) {
         // Received msg type: FAILURE
     } 
-}
+}*/
 //////////////////////////////////////////////////////////////////////////////////////////
 // rpcCall 
 int rpcCall(char* name, int* argTypes, void** args) { 
@@ -389,13 +403,18 @@ int rpcCall(char* name, int* argTypes, void** args) {
     string Binder_id = getenv("BINDER_ADDRESS");
     string Binder_port = getenv("BINDER_PORT"); 
     // connect to Binder
-    connection(Binder_id.c_str(), BINDER_PORT.c_str(), sockfd); 
+    if (connection(Binder_id.c_str(), Binder_port.c_str(), sockfd) < 0) {
+        cout << "ERROR in connecting to Binder" << endl;
+        return -1;      // TO_DO:  need a better meaningful negative number
+    }
 
     // send LOC_REQUEST message to Binder
-    int msgLen = 100 + getTypeLength(argTypes);  // name, argTypes
+    int msgLen = (100 + getTypeLength(argTypes));  // name, argTypes
     char buffer[msgLen + 8];
+    unsigned int requestType = LOC_REQUEST;
+
     memcpy(buffer, &msgLen, 4);                 // first 4 bytes stores length of msg
-    memcpy(buffer+4, &LOC_REQUEST, 4);          // next 4 bytes stores types info
+    memcpy(buffer+4, &requestType, 4);          // next 4 bytes stores types info
     memcpy(buffer+8, name, 100);                // and then msg = name + argTypes
     memcpy(buffer+108, argTypes, getTypeLength(argTypes)); 
 
@@ -421,7 +440,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
 
     	if (type == LOC_SUCCESS) {                 
     		// now extract server name (128 bytes) and server port (2 bytes)
-    		char *rcv_buffer[130];
+    		char rcv_buffer[130];
     		recv(sockfd, rcv_buffer, 130, 0);
     		char server_id[128];
     		char server_port[2]; 
@@ -431,26 +450,29 @@ int rpcCall(char* name, int* argTypes, void** args) {
     		close(sockfd); 
 
             // Now connect to target server
-    		connection(server_id, server_port, sockfd); 
+    		if (connection(server_id, server_port, sockfd) < 0) {
+                cout << "ERROR in connecting to server" << endl;
+                return -1; 
+            }
 
     		int messageLen = msgLen + getArgsLength(argTypes);  // name, argTypes, args
-            int requestType = EXECUTE;
+            requestType = EXECUTE;
 
     		char buffer[8 + messageLen];
     		memcpy(buffer, &messageLen, 4);
-    		memcpy(buffer+4, &reqeustType, 4);
+    		memcpy(buffer+4, &requestType, 4);
     		memcpy(buffer+8, name, 100); 
     		memcpy(buffer+108, argTypes, getTypeLength(argTypes)); 
             memcpy(buffer+108+getTypeLength(argTypes), args, getArgsLength(argTypes));
 
             // send EXECUTE request to server
-    		if (send(sockfd, buffer, length+8, 0) == -1) {
+    		if (send(sockfd, buffer, messageLen+8, 0) == -1) {
         		cout << "ERROR in sending LOC_REQUEST to Binder" << endl;
                 return -1; 
     		} 
             // wait for reply msg from server
-            char rcv_buffer[8]; 
-            int numbytes = recv(sockfd, rcv_buffer, 8, 0);
+            char rcv_buffer1[8]; 
+            int numbytes = recv(sockfd, rcv_buffer1, 8, 0);
             if (numbytes < 0) {
                 cerr << "ERROR in recving LOC reply from Binder" << endl;
                 exit(1); 
@@ -458,22 +480,22 @@ int rpcCall(char* name, int* argTypes, void** args) {
                 // extract first 8 bytes from Server
                 char rcv_len[4];
                 char rcv_type[4]; 
-                memcpy(rcv_len, rcv_buffer, 4); 
-                memcpy(rcv_type, rcv_buffer+4, 4); 
+                memcpy(rcv_len, rcv_buffer1, 4); 
+                memcpy(rcv_type, rcv_buffer1+4, 4); 
 
                 len = atoi(rcv_len);
                 type = atoi(rcv_type);
                 
                 if (type == EXECUTE_SUCCESS) {         
                     
-                    char *rcv_buffer[len];
-                    if (recv(sockfd, rcv_buffer, len, 0) < 0) {
+                    char *rcv_buffer2[len];
+                    if (recv(sockfd, rcv_buffer2, len, 0) < 0) {
 
                     }
                     //
                     int *new_argTypes;
                     void** new_args; 
-                    pack(rcvMsg, argTypes, args); 
+                    pack(rcv_buffer2, new_argTypes, new_args); 
 
                     memcpy(args, new_args, getArgsLength(argTypes));
                     //extract_args(rcv_buffer, argTypes, args);  //argTypes & args are from rpcCall 
@@ -520,9 +542,13 @@ int rpcExecute(void) {
     int newfd;        // newly accept()ed socket descriptor
     struct sockaddr_storage remoteaddr; // client address
     socklen_t addrlen;
+    char hostName[128];   // host name of local machine
 
-    
+    char buf[8];    // buffer for first 8 bytes
     int nbytes;
+
+    struct sockaddr_in addr;
+    int s_len;
 
     char remoteIP[INET6_ADDRSTRLEN];
 
@@ -534,46 +560,42 @@ int rpcExecute(void) {
     FD_ZERO(&master);    // clear the master and temp sets
     FD_ZERO(&read_fds);
 
-    // get us a socket and bind it
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
-    if ((rv = getaddrinfo(NULL, PORT, &hints, &ai)) != 0) {
-        cerr << "selectserver: " << gai_strerror(rv) << endl;
-        exit(1);
-    }
-    
-    for(p = ai; p != NULL; p = p->ai_next) {
-        listener = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-        if (listener < 0) { 
-            continue;
-        }
-        
-        // lose the pesky "address already in use" error message
-        setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+    //******************************************************************
+    // get a free port
+    listener = socket(PF_INET, SOCK_STREAM, 0);
 
-        if (bind(listener, p->ai_addr, p->ai_addrlen) < 0) {
-            close(listener);
-            continue;
-        }
-
-        break;
+    if(listener == 0)
+    {
+        cerr << "ERROR listen" << endl;
+        exit(-1);
     }
 
-    // if we got here, it means we didn't get bound
-    if (p == NULL) {
-        fprintf(stderr, "selectserver: failed to bind\n");
-        exit(2);
+    addr.sin_family = AF_INET;
+    addr.sin_port = 0;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    s_len = sizeof(addr);
+
+    if(bind(listener, (struct sockaddr *)&addr, sizeof(addr))<0)
+    {
+        cerr << "ERROR bind" << endl;
+        exit(-1);
+    }
+    if(listen(listener, MAX_CLIENTS))  // max 5 conns
+    {
+        cerr << "ERROR listen: too many client coneection requests" << endl;
+        exit(-1);
     }
 
-    freeaddrinfo(ai); // all done with this
-
-    // listen
-    if (listen(listener, 10) == -1) {
-        cerr << "listen" << endl;
-        exit(3);
+    if(getsockname(listener, (struct sockaddr*)&addr, (socklen_t*)&s_len ) == -1)
+    {
+        cerr << "ERROR getsockname" << endl;
+        exit(-1);
     }
+
+    gethostname(hostName, sizeof(hostName));
+
+    cout << "BINDER_ADDRESS " << hostName << endl;
+    cout << "BINDER_PORT " << ntohs(addr.sin_port) << endl;
 
     // add the listener to the master set
     FD_SET(listener, &master);
@@ -649,7 +671,7 @@ int rpcExecute(void) {
                         // To-do:  searching for skeleton in local DB
                         // skeleton search_skel(char* name, int* argTypes)
                         char * name = new char[100]; 
-                        memcpy(name, rcvMsg, 100); 
+                        memcpy(name, rcvMsg, 100);    // TO-DO: sth wrong here
                         rcvMsg += 100; 
 
                         int *argTypes;
