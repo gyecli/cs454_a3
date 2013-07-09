@@ -30,8 +30,8 @@ int rpcTerminate();
 char server_id[128];
 char server_port[2]; 
 char rcv_name[100];
-char* rcv_argTypes;
-char** rcv_args; 
+//char* rcv_argTypes;
+//char** rcv_args; 
 char reasonCode; 
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -46,41 +46,44 @@ int getTypeLength(int* argTypes) {
 	return (size +4);
 }
 
+// get the total length of args in bytes
 int getArgsLength(int* argTypes) {
 	int* it = argTypes; 
 	int total_len = 0; 	       // # of bytes
 	while(*it != 0) {          // last element of argTypes is always ZERO
         // Type_mask = (255 << 16)
 		unsigned int current_type = ((*it) & Type_mask) >> 16; 
-		unsigned int len = ((*it) & Length_mask)  // # of current arg of current_type
-		if (len == 0) {
-			len = 1; 
+
+        // TO_DO: Length_mask is not sure
+		unsigned int num = ((*it) & Length_mask)  // # of current arg of current_type
+		if (num == 0) {
+			num = 1; 
 		}
 
 		switch(current_type) {
 			case ARG_CHAR:
 				// type: char
-				total_len += len; 
+				total_len += 1 * num; 
 				break; 
 			case ARG_SHORT:
 				// type: short
-				total_len += 2 * len; 
+				total_len += 2 * num; 
 				break;
 			case ARG_INT:
 				// type: int
-				total_len +=  4 * len; 
+				total_len +=  4 * num; 
 				break;
 			case ARG_LONG:
 				// type: long
-				total_len += 4 * len; 
+				total_len += 4 * num; 
 				break;
 			case ARG_DOUBLE:
 				// type: double
-				total_len += 8 * len; 
+				total_len += 8 * num; 
 				break; 
 			case ARG_FLOAT:
 				// type: float
-				total_len += 4 * len; 
+				total_len += 4 * num; 
 				break;
 			default:
 				break;
@@ -91,176 +94,204 @@ int getArgsLength(int* argTypes) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-// extract from received （argTypes + args) combination
+// Extract from received （argTypes + args) combination from server
+// Assuming the argTypes & args are from rpcCall() 
+/*
 void extract_args(char *buffer, int *argTypes, void** args) {
-    
-    int length = getTypeLength(argTypes);
 
-    char* it1_buf = buffer;
-    char* it2_buf = buffer + length;  
+    int length = getTypeLength(argTypes);   // in bytes
 
-    int* it1 = argTypes;
-    void** it2
-    int total_len = getArgsLength(argTypes);  // in bytes
-
-    while(total_len > 0) {          // last element of argTypes is always ZERO
-        // Type_mask = (255 << 16)
-        unsigned int current_type = ((*it1) & Type_mask) >> 16; 
-        unsigned int len = ((*it1) & Length_mask)  // # of current arg of current_type
-        if (len == 0) {
-            len = 1; 
-        }
-
-        switch(current_type) {
-            case ARG_CHAR:
-                // type: char
-                memcpy(it2, it2_buf, len);
-                it2 += len; 
-                it2_buf += len; 
-                total_len -= len; 
-                break; 
-            case ARG_SHORT:
-                // type: short
-                memcpy(it2, it2_buf, 2*len)
-                it2 += 2*len; 
-                it2_buf += 2*len; 
-                total_len -= 2 * len; 
-                break;
-            case ARG_INT:
-                // type: int
-                memcpy(it2, it2_buf, 4*len)
-                it2 += 4*len; 
-                it2_buf += 4*len; 
-                total_len -= 4 * len; 
-                break;
-            case ARG_LONG:
-                // type: long
-                memcpy(it2, it2_buf, 4*len)
-                it2 += 4*len; 
-                it2_buf += 4*len; 
-                total_len -= 4 * len; 
-                break;
-            case ARG_DOUBLE:
-                // type: double
-                memcpy(it2, it2_buf, 8*len)
-                it2 += 8*len; 
-                it2_buf += 8*len; 
-                total_len -= 8 * len; 
-                break; 
-            case ARG_FLOAT:
-                // type: float
-                memcpy(it2, it2_buf, 4*len)
-                it2 += 4*len; 
-                it2_buf += 4*len; 
-                total_len -= 4 * len; 
-                break;
-            default:
-                break;
-        }
-        it1++;
-    
-    }
-}
-
-
-//////////////////////////////////////////////////////////////////////////////////////////
-// extract from buffer, and then put the data correspondly into argTypes & args
-
-void pack(char* message, int* argTypes, void** args) {
-    int num = 0;            // number of argTypes
-    int argLen = 0; 
-    char* it = message; 
-    for (char* it = buffer; atoi(it) != 0; it = it+4) {
-        num++;  
-    }
-    argTypes = new int[num+1];
-
-    int i = 0; 
-    char* it = buffer; 
-    for (; atoi(it) != 0; it = it+4) {
-        argTypes[i] = atoi(it); 
-        i++; 
-    }
-    it += 4; 
-    argTypes[i] = 0; 
-    argLen = getArgsLength(argTypes); 
-
-    args = new void**[num * sizeof(void *)];           // TO_DO: not sure here
+    char* it = buffer + length;  
 
     int j = 0; 
-    while(argTypes[j] != 0) {          // last element of argTypes is always ZERO
-        // Type_mask:  (255 << 16)
-        unsigned int current_type = ((*temp) & Type_mask) >> 16; 
-        unsigned int len = ((*temp) & Length_mask)  // # of current arg of current_type
-        
+    while(argTypes[i] != 0) {          // last element of argTypes is always ZERO
+        // Type_mask = (255 << 16)
+        unsigned int current_type = ((argTypes[j]) & Type_mask) >> 16; 
+        unsigned int num = ((argTypes[j]) & Length_mask)  // # of current arg of current_type
         int flag = 0; 
-
-        if (len == 0) {
-            len = 1; 
+        if (num == 0) {
+            num = 1; 
             flag = 1; 
         }
 
         switch(current_type) {
             case ARG_CHAR:
                 // type: char
-                char *temp2 = new char[len];
+                char *temp2 = new char[num];
                 memcpy(temp2, it, len);
                 if (flag == 1) {
                     args[j] = (void *) &(*temp2); 
                 } else {
                     args[j] = (void *) temp2; 
                 }
-                it += len; 
+                it += num; 
                 break; 
+
             case ARG_SHORT:
                 // type: short
-                short *temp2 = new short[len]
+                short *temp2 = new short[num]
+                memcpy (temp2, it, 2*num); 
                 if(flag == 1) {
                     args[j] = (void *) &(*temp2); 
                 } else {
                     args[j] = (void *) temp2; 
                 }
-                it += 2*len;
+                it += 2*num; 
                 break;
             case ARG_INT:
                 // type: int
-                int *temp2 = new int[len]
+                short *temp2 = new short[num]
+                memcpy (temp2, it, 4*num); 
                 if(flag == 1) {
                     args[j] = (void *) &(*temp2); 
                 } else {
                     args[j] = (void *) temp2; 
                 }
-                it += 4*len;
+                it += 4*num; 
                 break;
             case ARG_LONG:
                 // type: long
-                long *temp2 = new long[len]
+                short *temp2 = new short[num]
+                memcpy (temp2, it, 4*num); 
                 if(flag == 1) {
                     args[j] = (void *) &(*temp2); 
                 } else {
                     args[j] = (void *) temp2; 
                 }
-                it += 4*len;
+                it += 4*num; 
                 break;
             case ARG_DOUBLE:
                 // type: double
-                double *temp2 = new double[len]
+                short *temp2 = new short[num]
+                memcpy (temp2, it, 8*num); 
                 if(flag == 1) {
                     args[j] = (void *) &(*temp2); 
                 } else {
                     args[j] = (void *) temp2; 
                 }
-                it += 8*len;
+                it += 8*num; 
                 break; 
             case ARG_FLOAT:
                 // type: float
-                int *temp2 = new int[len]
+                short *temp2 = new short[num]
+                memcpy (temp2, it, 4*num); 
                 if(flag == 1) {
                     args[j] = (void *) &(*temp2); 
                 } else {
                     args[j] = (void *) temp2; 
                 }
-                it += 4*len;
+                it += 4*num; 
+                break;
+            default:
+                break;
+        }
+        j++; 
+    }
+}
+*/
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// 1.extract from buffer(message, and then put the data correspondly 
+//   into argTypes & args
+// 2.argTypes & args are NOT from rpcCall()
+void pack(char* buffer, int* argTypes, void** args) {
+    int num = 0;            // number of argTypes
+    int argLen = 0; 
+    char* it = buffer; 
+    for (char* it = buffer; atoi(it) != 0; it = it+4) {
+        num++; 
+    }
+    argTypes = new int[num+1];
+
+    int i = 0; 
+    char* it = buffer; 
+    for ( ; atoi(it) != 0; it = it+4) {
+        argTypes[i] = atoi(it); 
+        i++; 
+    }
+    it += 4;                    // it now points to args in buffer
+    argTypes[i] = 0; 
+    argLen = getArgsLength(argTypes); 
+
+    args = new (void*)[num * sizeof(void *)];           // TO_DO: not sure here
+
+    int j = 0; 
+    while(argTypes[j] != 0) {          // last element of argTypes is always ZERO
+        // Type_mask:  (255 << 16)
+        unsigned int current_type = (argTypes[j] & Type_mask) >> 16; 
+        unsigned int num = ((*temp) & Length_mask)  // # of current arg of current_type
+        
+        int flag = 0; 
+
+        if (num == 0) {
+            num = 1; 
+            flag = 1;       // 1 means the arg is a scalar, not an array
+        }
+
+        switch(current_type) {
+            case ARG_CHAR:
+                // type: char
+                char *temp2 = new char[num];
+                memcpy(temp2, it, len);
+                if (flag == 1) {
+                    args[j] = (void *) &(*temp2); 
+                } else {
+                    arg[j] = new char[num];
+                    args[j] = (void *) temp2; 
+                }
+                it += num; 
+                break; 
+            case ARG_SHORT:
+                // type: short
+                short *temp2 = new short[num]
+                memcpy (temp2, it, 2*num); 
+                if(flag == 1) {
+                    args[j] = (void *) &(*temp2); 
+                } else {
+                    args[j] = new short[num];
+                    args[j] = (void *) temp2; 
+                }
+                it += 2*num;
+                break;
+            case ARG_INT:
+                // type: int
+                int *temp2 = new int[num]
+                if(flag == 1) {
+                    args[j] = (void *) &(*temp2); 
+                } else {
+                    args[j] = (void *) temp2; 
+                }
+                it += 4*num;
+                break;
+            case ARG_LONG:
+                // type: long
+                long *temp2 = new long[num]
+                if(flag == 1) {
+                    args[j] = (void *) &(*temp2); 
+                } else {
+                    args[j] = (void *) temp2; 
+                }
+                it += 4*num;
+                break;
+            case ARG_DOUBLE:
+                // type: double
+                double *temp2 = new double[num]
+                if(flag == 1) {
+                    args[j] = (void *) &(*temp2); 
+                } else {
+                    args[j] = (void *) temp2; 
+                }
+                it += 8*num;
+                break; 
+            case ARG_FLOAT:
+                // type: float
+                int *temp2 = new int[num]
+                if(flag == 1) {
+                    args[j] = (void *) &(*temp2); 
+                } else {
+                    args[j] = (void *) temp2; 
+                }
+                it += 4*num;
                 break;
             default:
                 break;
@@ -351,16 +382,15 @@ void receiveMsg(int msgLen, int msgType, int sockfd) {
 int rpcCall(char* name, int* argTypes, void** args) { 
     //*************************************************
     // check whether arguments are valid
-    // add code here
-
+    // Note: right now no need to check
     //*************************************************
 	int sockfd; 
 
     string Binder_id = getenv("BINDER_ADDRESS");
     string Binder_port = getenv("BINDER_PORT"); 
+    // connect to Binder
     connection(Binder_id.c_str(), BINDER_PORT.c_str(), sockfd); 
 
-    //******************************************************
     // send LOC_REQUEST message to Binder
     int msgLen = 100 + getTypeLength(argTypes);  // name, argTypes
     char buffer[msgLen + 8];
@@ -380,7 +410,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
     	cerr << "ERROR in recving LOC reply from Binder" << endl;
     	exit(1); 
     } else {
-        // extract first 8 bytes
+        // extract first 8 bytes from Binder
     	char rcv_len[4];
     	char rcv_type[4]; 
     	memcpy(rcv_len, rcv_buffer, 4); 
@@ -389,7 +419,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
         int len = atoi(rcv_len);
         int type = atoi(rcv_type);
 
-    	if (type == LOC_SUCCESS) {                       // Type: LOC_SUCCESS
+    	if (type == LOC_SUCCESS) {                 
     		// now extract server name (128 bytes) and server port (2 bytes)
     		char *rcv_buffer[130];
     		recv(sockfd, rcv_buffer, 130, 0);
@@ -404,17 +434,19 @@ int rpcCall(char* name, int* argTypes, void** args) {
     		connection(server_id, server_port, sockfd); 
 
     		int messageLen = msgLen + getArgsLength(argTypes);  // name, argTypes, args
+            int requestType = EXECUTE;
 
     		char buffer[8 + messageLen];
     		memcpy(buffer, &messageLen, 4);
-    		memcpy(buffer+4, &LOC_EXUCUTE, 4);
+    		memcpy(buffer+4, &reqeustType, 4);
     		memcpy(buffer+8, name, 100); 
     		memcpy(buffer+108, argTypes, getTypeLength(argTypes)); 
             memcpy(buffer+108+getTypeLength(argTypes), args, getArgsLength(argTypes));
 
             // send EXECUTE request to server
     		if (send(sockfd, buffer, length+8, 0) == -1) {
-        		cerr << "ERROR in sending LOC_REQUEST to Binder" << endl;
+        		cout << "ERROR in sending LOC_REQUEST to Binder" << endl;
+                return -1; 
     		} 
             // wait for reply msg from server
             char rcv_buffer[8]; 
@@ -423,7 +455,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
                 cerr << "ERROR in recving LOC reply from Binder" << endl;
                 exit(1); 
             } else {
-                // extract first 8 bytes
+                // extract first 8 bytes from Server
                 char rcv_len[4];
                 char rcv_type[4]; 
                 memcpy(rcv_len, rcv_buffer, 4); 
@@ -438,7 +470,13 @@ int rpcCall(char* name, int* argTypes, void** args) {
                     if (recv(sockfd, rcv_buffer, len, 0) < 0) {
 
                     }
-                    extract_args(rcv_buffer, argTypes, args);  //argTypes & args are from rpcCall 
+                    //
+                    int *new_argTypes;
+                    void** new_args; 
+                    pack(rcvMsg, argTypes, args); 
+
+                    memcpy(args, new_args, getArgsLength(argTypes));
+                    //extract_args(rcv_buffer, argTypes, args);  //argTypes & args are from rpcCall 
 
                     close(sockfd);  
 
@@ -449,6 +487,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
                 } else {
                     cout << "Should not come here 1" << endl;
                 }
+            }
     	} else if (type == FAILURE) {
             cout << "LOC FAILURE" << endl;
             return RPCCALL_FAILURE;
@@ -609,17 +648,35 @@ int rpcExecute(void) {
                         // search for skeleton here
                         // To-do:  searching for skeleton in local DB
                         // skeleton search_skel(char* name, int* argTypes)
+                        char * name = new char[100]; 
+                        memcpy(name, rcvMsg, 100); 
+                        rcvMsg += 100; 
+
+                        int *argTypes;
+                        void** args; 
+
+                        pack(rcvMsg, argTypes, args); 
                         
-                        skeleton skel_func = search_skel(char* name, int* argTypes);
+                        skeleton skel_func = search_skel(name, argTypes);
                         skel_func(argTypes, args);
 
-                        if (FD_ISSET(j, &master)) {
-                            // except the listener and ourselves
-                            if (j != listener && j != i) {
-                                if (send(j, buf, nbytes, 0) == -1) {
-                                    cerr << "send" << endl;
-                                }
+
+                        int messageLen = 100 + getTypeLength(argTypes) + getArgsLength(argTypes);  // name, argTypes, args
+
+                        int exeResult = EXECUTE_SUCCESS; // TO_DO: miss EXECUTE_FAILURE
+
+                        char buffer[8 + messageLen];
+                        memcpy(buffer, &messageLen, 4);
+                        memcpy(buffer+4, &exeResult, 4);
+                        memcpy(buffer+8, name, 100); 
+                        memcpy(buffer+108, argTypes, getTypeLength(argTypes)); 
+                        memcpy(buffer+108+getTypeLength(argTypes), args, getArgsLength(argTypes));
+                        
+                        if (FD_ISSET(i, &master)) {
+                            if (send(i, buffer, nbytes, 0) == -1) {
+                                cerr << "send" << endl;
                             }
+                            
                         }
                         
                     }
