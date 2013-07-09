@@ -13,7 +13,6 @@
 
 #define RPCCALL_SUCCESS 0
 #define RPCCALL_FAILURE -3
-#define LOC_FAILURE 6
 
 #define IO_mask (3 << 30)
 #define Input_mask (1 << 31)
