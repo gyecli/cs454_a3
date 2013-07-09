@@ -3,6 +3,7 @@
 
 #define array_size_mask ((1<<17)-1)
 
+
 const int SIZE_IDENTIFIER = 100; 
 const int SIZE_PORTNO = 16; 
 const int SIZE_NAME = 100; 

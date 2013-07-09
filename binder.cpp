@@ -14,6 +14,7 @@
 
 #define MAX_CLIENTS 20
 
+//TODO: to be moved to other places 
 #define REGISTER 1          // Type of requests from servers
 #define LOC_REQUEST 2       // Type of requests from clients
 
@@ -175,4 +176,9 @@ int binderInit(void)
     } // END for(;;)--and you thought it would never end!
 
     return 0;
+}
+
+int main()
+{
+    binderInit();
 }
