@@ -20,6 +20,7 @@
 
 //TODO: manage include files  
 
+using namespace std;
 
 int rpcInit()
 {
