@@ -12,6 +12,8 @@
 #include <netdb.h>
 
 #include "rpc.h"
+#include "my_rpc.h"
+#include "binder.h"
 
 #define MAX_CLIENTS 20
 
@@ -20,6 +22,8 @@
 #define LOC_REQUEST 2       // Type of requests from clients
 
 using namespace std;
+
+BinderDB db;
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -172,6 +176,27 @@ int binderInit(void)
 
     return 0;
 }
+
+int binderRegister(char* received, int size)
+{
+    char server_id[SIZE_IDENTIFIER]; 
+    char portno[SIZE_PORTNO]; 
+    char name[SIZE_NAME];
+    int* argTypes;
+    memcpy(server_id, received + 8, SIZE_IDENTIFIER); 
+    memcpy(portno, received + 8 + SIZE_IDENTIFIER, SIZE_PORTNO); 
+    memcpy(name, received + 8 + SIZE_IDENTIFIER + SIZE_PORTNO, SIZE_NAME); 
+
+    int used_size = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME; 
+    char* buff = new char[size - used_size]; 
+    memcpy(buff, received + 8 + used_size, size - used_size);
+    argTypes = (int*)buff; 
+
+    Prosig pro = Prosig(string(name), getTypeLength(argTypes), argTypes);
+    Server ser = Server(server_id, portno);
+    db.Register(pro, ser); 
+}
+
 
 int main()
 {

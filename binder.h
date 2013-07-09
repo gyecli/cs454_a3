@@ -11,6 +11,7 @@ class Server;
 class BinderDB; 
 //procedure location 
 typedef std::pair<Prosig, Server> ProLoc;
+int getTypeLength(int* argTypes); 
 
 //Procedure Signiture 
 //stores everything we need to compare 2 signitures

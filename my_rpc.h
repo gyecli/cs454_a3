@@ -24,3 +24,7 @@
 
 //added by Yiyao 
 #define REGISTER_SUCCESS 0; 
+
+const int SIZE_IDENTIFIER = 100;  // TO_DO: is this the size of server ID? 128?
+const int SIZE_PORTNO = 16;       // TO_DO: 16 bits?? 2 bytes?
+const int SIZE_NAME = 100;

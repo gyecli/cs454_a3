@@ -6,10 +6,6 @@
 
 #define array_size_mask ((1<<17)-1)     // TO_DO: This is already in "my_rpc.h" (commented by Tim)
 
-const int SIZE_IDENTIFIER = 100;  // TO_DO: is this the size of server ID? 128?
-const int SIZE_PORTNO = 16;       // TO_DO: 16 bits?? 2 bytes?
-const int SIZE_NAME = 100; 
-
 using namespace std;  
 
 Prosig::Prosig(string name, int argNum, int* argTypes):name(name),argNum(argNum), argTypes(argTypes)
@@ -152,6 +148,12 @@ int BinderRegister()
 
 }
 
+int rpcRegister(char* name, int *argTypes, skeleton f)
+{
+
+}
+
+/*
 int main()
 {
     BinderDB db;
@@ -216,4 +218,5 @@ int main()
 
     }
 }
+*/
 
