@@ -1,11 +1,19 @@
 #include "binder.h"
 #include "my_rpc.h"
 
-#define array_size_mask ((1<<17)-1)
+// added by Tim
+#include "rpc.h"
 
+<<<<<<< HEAD
 
 const int SIZE_IDENTIFIER = 100; 
 const int SIZE_PORTNO = 16; 
+=======
+#define array_size_mask ((1<<17)-1)     // TO_DO: This is already in "my_rpc.h" (commented by Tim)
+
+const int SIZE_IDENTIFIER = 100;  // TO_DO: is this the size of server ID? 128?
+const int SIZE_PORTNO = 16;       // TO_DO: 16 bits?? 2 bytes?
+>>>>>>> 4b8509f57a8baf601c5f4cb581b9393a156ef543
 const int SIZE_NAME = 100; 
 
 using namespace std;  
@@ -21,7 +29,7 @@ Prosig::~Prosig()
 
 bool Prosig::operator==(const Prosig &other) const 
 {
-    if(this->name != other.name)
+    if(this->name != other.name)    // TO_DO: string comparison not proper?
         return false;
     if(this->argNum != other.argNum)
         return false;

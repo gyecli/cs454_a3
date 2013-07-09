@@ -42,7 +42,6 @@ int binderInit(void)
     socklen_t addrlen;
     char hostName[128];   // host name of local machine
 
-    char buf[8];    // buffer for first 8 bytes
     int nbytes;
 
     struct sockaddr_in addr;
@@ -134,6 +133,8 @@ int binderInit(void)
                     }
                 } else {
                     // handle data from a client
+                    char buf[8];    // buffer for first 8 bytes
+
                     if ((nbytes = recv(i, buf, sizeof buf, 0)) <= 0) {
                         // got error or connection closed by client
                         if (nbytes == 0) {
@@ -146,14 +147,14 @@ int binderInit(void)
                         FD_CLR(i, &master); // remove from master set
                     } else {
                         // we got some data from a client
-                        string str(buf);
-                        int length, type;
+                        
+                        char rcv_len[4];
+                        char rcv_type[4]; 
+                        memcpy(rcv_len, buf, 4); 
+                        memcpy(rcv_type, buf+4, 4); 
 
-                        s1 = str.substr(0, 4);
-                        s2 = str.substr(4,4);
-
-                        length = atoi (s1.c_str());
-                        type = atoi (s2.c_str());
+                        length = atoi (rcv_len);
+                        type = atoi (rcv_type);
 
                         if (type == REGISTER) {
                             // It's a register request from server
