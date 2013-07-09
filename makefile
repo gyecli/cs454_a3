@@ -1,5 +1,12 @@
-binder:
-	g++ -c biner.cpp -o binder
-server:
-	g++ -c server_db.cpp -o server
+all: binder server
 
+binder: binder.cpp
+	g++ -Wall -c $^ -o binder
+
+server: server_db.cpp
+	g++ -Wall -c $^ -o server
+
+
+.PHONY: clean
+clean:
+	rm -rf binder server *.o
