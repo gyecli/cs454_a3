@@ -5,7 +5,6 @@
 #include <list>
 #include <utility> 
 
-#include "my_rpc.h"
 
 class Prosig; 
 class Server; 

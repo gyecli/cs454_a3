@@ -1,10 +1,7 @@
 #include "binder.h"
 #include "my_rpc.h"
 
-<<<<<<< HEAD
-=======
 #define array_size_mask ((1<<17)-1)
->>>>>>> c88b5b1c90c607a4222c110579ae4228d184acaa
 
 const int SIZE_IDENTIFIER = 100; 
 const int SIZE_PORTNO = 16; 
@@ -31,10 +28,8 @@ bool Prosig::operator==(const Prosig &other) const
 
     for(int i=0; i<this->argNum; ++i)
     {
-<<<<<<< HEAD
         if(this->argTypes[i] != other.argTypes[i])
-        return false; 
-=======
+            return false; 
         if(this->name != other.name)
             return false;
         if(this->argNum != other.argNum)
@@ -56,7 +51,6 @@ bool Prosig::operator==(const Prosig &other) const
             }
         }
         return true; 
->>>>>>> c88b5b1c90c607a4222c110579ae4228d184acaa
     }
     return true; 
 }
