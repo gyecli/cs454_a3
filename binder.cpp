@@ -137,7 +137,7 @@ int binderInit(void)
                         // got error or connection closed by client
                         if (nbytes == 0) {
                             // connection closed
-                            cout << "selectserver: socket %d hung up\n" << i << endl;
+                            cout << "selectserver: socket " << i <<  "hung up" << endl;
                         } else {
                             cerr << "ERROR recv()" << endl;
                         }

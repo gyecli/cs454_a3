@@ -28,12 +28,12 @@ int rpcInit()
     //pthread_t thread1, thread2, thread3; 
     //int iret1, iret2, iret3; 
 
-    if((hostAddr = getenv("SERVER_ADDRESS")) == 0)
+    if((hostAddr = getenv("BINDER_ADDRESS")) == 0)
     {
         perror("can't get env variable SERVER_ADDRESS"); 
         exit(-1);
     }
-    if((portno = getenv("SERVER_PORT"))==0)
+    if((portno = getenv("BINDER_PORT"))==0)
     {
         perror("can't get env variable SERVER_PORT");
         exit(-1);
