@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <stdlib.h>
 #include <cassert>
 #include <ctime>
@@ -49,7 +50,6 @@ int binderInit(void)
 
     char remoteIP[INET6_ADDRSTRLEN];
 
-    int yes=1;        // for setsockopt() SO_REUSEADDR, below
     int i, j, rv;
 
     struct addrinfo hints, *ai, *p;
@@ -124,12 +124,6 @@ int binderInit(void)
                         if (newfd > fdmax) {    // keep track of the max
                             fdmax = newfd;
                         }
-                        printf("selectserver: new connection from %s on "
-                            "socket %d\n",
-                            inet_ntop(remoteaddr.ss_family,
-                                get_in_addr((struct sockaddr*)&remoteaddr),
-                                remoteIP, INET6_ADDRSTRLEN),
-                            newfd);
                     }
                 } else {
                     // handle data from a client
@@ -153,8 +147,8 @@ int binderInit(void)
                         memcpy(rcv_len, buf, 4); 
                         memcpy(rcv_type, buf+4, 4); 
 
-                        length = atoi (rcv_len);
-                        type = atoi (rcv_type);
+                        int length = atoi (rcv_len);
+                        int type = atoi (rcv_type);
 
                         if (type == REGISTER) {
                             // It's a register request from server
