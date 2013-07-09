@@ -18,13 +18,14 @@
 #define Input_mask (1 << 31)
 #define Output_mask (1 << 30)
 #define Type_mask (255 << 16)
-#define array_size_mask ((1<<17)-1)			// OR 255 (NOT SURE, becasue it's last 2 bytes)
+#define array_size_mask ((1<<17)-1)		
 
 //define reasonCode here	
 
 //added by Yiyao 
-#define REGISTER_SUCCESS 0; 
+#define REGISTER_SUCCESS 0 
 
-const int SIZE_IDENTIFIER = 100;  // TO_DO: is this the size of server ID? 128?
-const int SIZE_PORTNO = 16;       // TO_DO: 16 bits?? 2 bytes?
-const int SIZE_NAME = 100;
+#define SIZE_IDENTIFIER 128
+#define SIZE_PORTNO 4
+#define SIZE_NAME 100
+
