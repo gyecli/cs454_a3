@@ -7,7 +7,6 @@ const int SIZE_IDENTIFIER = 100;
 const int SIZE_PORTNO = 16; 
 const int SIZE_NAME = 100; 
 
-
 using namespace std;  
 
 Prosig::Prosig(string name, int argNum, int* argTypes):name(name),argNum(argNum), argTypes(argTypes)

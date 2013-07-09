@@ -6,13 +6,10 @@
 #define EXECUTE 4
 #define EXECUTE_SUCCESS 5
 #define FAILURE 0
-<<<<<<< HEAD
 
 #define RPCCALL_SUCCESS 0
 #define RPCCALL_FAILURE -1
-=======
 #define LOC_FAILURE 6
->>>>>>> b0e3a049fcba7b74841f32b05913cfe0cba47710
 
 #define IO_mask (3 << 30)
 #define Input_mask (1 << 31)
