@@ -30,9 +30,9 @@ int rpcTerminate();
 char server_id[128];
 char server_port[2]; 
 char rcv_name[100];
-int* rcv_argTypes;
-void** rcv_args; 
-int reasonCode; 
+char* rcv_argTypes;
+char** rcv_args; 
+char reasonCode; 
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // figure out the size (in bytes）of argTypes array, including the "0" at the end; 
@@ -46,7 +46,7 @@ int getTypeLength(int* argTypes) {
 	return (size +4);
 }
 
-int getArgsLength(int* argTypes, void** args) {
+int getArgsLength(int* argTypes) {
 	int* it = argTypes; 
 	int total_len = 0; 	       // # of bytes
 	while(*it != 0) {          // last element of argTypes is always ZERO
@@ -56,28 +56,29 @@ int getArgsLength(int* argTypes, void** args) {
 		if (len == 0) {
 			len = 1; 
 		}
+
 		switch(current_type) {
-			case 1:
+			case ARG_CHAR:
 				// type: char
 				total_len += len; 
 				break; 
-			case 2:
+			case ARG_SHORT:
 				// type: short
 				total_len += 2 * len; 
 				break;
-			case 3:
+			case ARG_INT:
 				// type: int
 				total_len +=  4 * len; 
 				break;
-			case 4:
+			case ARG_LONG:
 				// type: long
 				total_len += 4 * len; 
 				break;
-			case 5:
+			case ARG_DOUBLE:
 				// type: double
 				total_len += 8 * len; 
 				break; 
-			case 6:
+			case ARG_FLOAT:
 				// type: float
 				total_len += 4 * len; 
 				break;
@@ -91,14 +92,181 @@ int getArgsLength(int* argTypes, void** args) {
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // extract from received （argTypes + args) combination
-void extract_args(char *buffer, int* argTypes, void** args) {
-    int argTypesLen = getTypeLength(argTypes); 
-    char *buf_ptr = buffer + argTypesLen;
-
-    for (int i = 0; i < argTypesLen/4; i++) {
-        args[i] = buf_ptr
-    }
+void extract_args(char *buffer, int *argTypes, void** args) {
     
+    int length = getTypeLength(argTypes);
+
+    char* it1_buf = buffer;
+    char* it2_buf = buffer + length;  
+
+    int* it1 = argTypes;
+    void** it2
+    int total_len = getArgsLength(argTypes);  // in bytes
+
+    while(total_len > 0) {          // last element of argTypes is always ZERO
+        // Type_mask = (255 << 16)
+        unsigned int current_type = ((*it1) & Type_mask) >> 16; 
+        unsigned int len = ((*it1) & Length_mask)  // # of current arg of current_type
+        if (len == 0) {
+            len = 1; 
+        }
+
+        switch(current_type) {
+            case ARG_CHAR:
+                // type: char
+                memcpy(it2, it2_buf, len);
+                it2 += len; 
+                it2_buf += len; 
+                total_len -= len; 
+                break; 
+            case ARG_SHORT:
+                // type: short
+                memcpy(it2, it2_buf, 2*len)
+                it2 += 2*len; 
+                it2_buf += 2*len; 
+                total_len -= 2 * len; 
+                break;
+            case ARG_INT:
+                // type: int
+                memcpy(it2, it2_buf, 4*len)
+                it2 += 4*len; 
+                it2_buf += 4*len; 
+                total_len -= 4 * len; 
+                break;
+            case ARG_LONG:
+                // type: long
+                memcpy(it2, it2_buf, 4*len)
+                it2 += 4*len; 
+                it2_buf += 4*len; 
+                total_len -= 4 * len; 
+                break;
+            case ARG_DOUBLE:
+                // type: double
+                memcpy(it2, it2_buf, 8*len)
+                it2 += 8*len; 
+                it2_buf += 8*len; 
+                total_len -= 8 * len; 
+                break; 
+            case ARG_FLOAT:
+                // type: float
+                memcpy(it2, it2_buf, 4*len)
+                it2 += 4*len; 
+                it2_buf += 4*len; 
+                total_len -= 4 * len; 
+                break;
+            default:
+                break;
+        }
+        it1++;
+    
+    }
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// extract from buffer, and then put the data correspondly into argTypes & args
+
+void pack(char* message, int* argTypes, void** args) {
+    int num = 0;            // number of argTypes
+    int argLen = 0; 
+    char* it = message; 
+    for (char* it = buffer; atoi(it) != 0; it = it+4) {
+        num++;  
+    }
+    argTypes = new int[num+1];
+
+    int i = 0; 
+    char* it = buffer; 
+    for (; atoi(it) != 0; it = it+4) {
+        argTypes[i] = atoi(it); 
+        i++; 
+    }
+    it += 4; 
+    argTypes[i] = 0; 
+    argLen = getArgsLength(argTypes); 
+
+    args = new void**[num * sizeof(void *)];           // TO_DO: not sure here
+
+    int j = 0; 
+    while(argTypes[j] != 0) {          // last element of argTypes is always ZERO
+        // Type_mask:  (255 << 16)
+        unsigned int current_type = ((*temp) & Type_mask) >> 16; 
+        unsigned int len = ((*temp) & Length_mask)  // # of current arg of current_type
+        
+        int flag = 0; 
+
+        if (len == 0) {
+            len = 1; 
+            flag = 1; 
+        }
+
+        switch(current_type) {
+            case ARG_CHAR:
+                // type: char
+                char *temp2 = new char[len];
+                memcpy(temp2, it, len);
+                if (flag == 1) {
+                    args[j] = (void *) &(*temp2); 
+                } else {
+                    args[j] = (void *) temp2; 
+                }
+                it += len; 
+                break; 
+            case ARG_SHORT:
+                // type: short
+                short *temp2 = new short[len]
+                if(flag == 1) {
+                    args[j] = (void *) &(*temp2); 
+                } else {
+                    args[j] = (void *) temp2; 
+                }
+                it += 2*len;
+                break;
+            case ARG_INT:
+                // type: int
+                int *temp2 = new int[len]
+                if(flag == 1) {
+                    args[j] = (void *) &(*temp2); 
+                } else {
+                    args[j] = (void *) temp2; 
+                }
+                it += 4*len;
+                break;
+            case ARG_LONG:
+                // type: long
+                long *temp2 = new long[len]
+                if(flag == 1) {
+                    args[j] = (void *) &(*temp2); 
+                } else {
+                    args[j] = (void *) temp2; 
+                }
+                it += 4*len;
+                break;
+            case ARG_DOUBLE:
+                // type: double
+                double *temp2 = new double[len]
+                if(flag == 1) {
+                    args[j] = (void *) &(*temp2); 
+                } else {
+                    args[j] = (void *) temp2; 
+                }
+                it += 8*len;
+                break; 
+            case ARG_FLOAT:
+                // type: float
+                int *temp2 = new int[len]
+                if(flag == 1) {
+                    args[j] = (void *) &(*temp2); 
+                } else {
+                    args[j] = (void *) temp2; 
+                }
+                it += 4*len;
+                break;
+            default:
+                break;
+        }
+        j++; 
+    }
 }
 //////////////////////////////////////////////////////////////////////////////////////////
 // Helper function to create a connection 
@@ -111,80 +279,70 @@ void connection(char* hostname, char* port, int sockfd) {
     hints.ai_socktype = SOCK_STREAM;
         
     if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        cerr << "getaddrinfo: " << gai_strerror(rv) << endl;
         return 1;
     }
     // loop through all the results and connect to the first we can
     for(p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd = socket(p->ai_family, p->ai_socktype,
                 p->ai_protocol)) == -1) {
-            perror("client: socket");
+            cerr << "client: socket" << endl;
             continue;
         }
 
         if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
             close(sockfd);
-            perror("ERROR in client connecting");
+            cerr << "ERROR in client connecting" << endl;
             continue;
         }
         break;
     }
 
     if (p == NULL) {
-        fprintf(stderr, "ERROR: client failed to connect\n");
+        cerr <<  "ERROR: client failed to connect" << endl;
         return -2;
     }
 
     freeaddrinfo(servinfo); // all done with this structure
 }
 //////////////////////////////////////////////////////////////////////////////////////////
-void receiveMsg(int MsgLen, int MsgType, int sockfd) {
-    char rcv_buffer[8];
+void receiveMsg(int msgLen, int msgType, int sockfd) {
     
-    int numbytes = recv(sockfd, rcv_buffer, 8, 0);
+    int numbytes = recv(sockfd, rcv_buffer, msgLen, 0);
     if (numbytes <= 0) {
         if (numbytes == 0) {
             cout << "Target server is closed" << endl;
         } else {
-            perror("ERROR in recving LOC reply from Binder");
+            cerr << "ERROR in recving LOC reply from Binder" << endl;
         }
     } 
-    char rcv_len[4];
-    char rcv_type[4]; 
-    memcpy(rcv_len, rcv_buffer, 4); 
-    memcpy(rcv_type, rcv_buffer+4, 4); 
 
-    if (atoi(rcv_type) == LOC_SUCCESS) {
+    if (msgType == LOC_SUCCESS) {
         // Received msg type: LOC_SUCCESS from Binder
-        char *rcv_buffer[130];
-        if (recv(sockfd, rcv_buffer, 130, 0) < 0) {
-            perror("ERROR in recving LOC reply from Binder");
+        char rcv_buffer[msgLen];
+        if (recv(sockfd, rcv_buffer, msgLen, 0) < 0) {
+            cerr << "ERROR in recving LOC reply from Binder" << endl;
         } else {
             memcpy(server_id, rcv_buffer, 128); 
             memcpy(server_port, rcv_buffer+128, 2); 
 
             close(sockfd);          // finish receiving data from Binder
         }
-    } else if (atoi(rcv_type) == EXECUTE_SUCCESS) {
+    } else if (msgType == EXECUTE_SUCCESS) {
         // Received msg type: EXECUTE_SUCCESS from Server
-        char *rcv_buffer[atoi(rcv_len)];
+        char rcv_buffer[msgLen];
         if (recv(sockfd, rcv_buffer, , 0) < 0) {
-            perror("ERROR in recving LOC reply from Binder");
+            cerr << "ERROR in recving LOC reply from Binder" << endl;
         } else {
-
-            memcpy(rcv_name, rcv_buffer, 100); 
-            
-            int temp_len = 0; 
-            for (char* buf_ptr = rcv_buffer+100; atoi(*buf_ptr) != 0; buf_ptr++) {
-                temp_len += 4; 
-            }
-
-            memcpy(rcv_argTypes, rcv_buffer+100, temp_len+4);
-            memcpy(rcv_args, rcv_buffer+temp_len+4, temp_len); 
+            memcpy(rcv_name, rcv_buffer, 100);
+            memcpy(rcv_argTypes, rcv_buffer, )
+            ///////////////////////
+            // need implement here
+            ///////////////////////
 
             close(sockfd);          // finish receiving data from Binder
         }
-    } else if (atoi(rcv_type) == 0) {
+    } else if (msgType == 0) {
         // Received msg type: FAILURE
     } 
 }
@@ -213,13 +371,13 @@ int rpcCall(char* name, int* argTypes, void** args) {
 
     // send LOC_REQUEST msg to Binder
     if (send(sockfd, buffer, msgLen+8, 0) == -1) {
-        perror("ERROR in sending LOC_REQUEST to Binder");
+        cerr << "ERROR in sending LOC_REQUEST to Binder" << endl;
     } 
     // wait for reply msg from Binder
     char rcv_buffer[8]; 
     int numbytes = recv(sockfd, rcv_buffer, 8, 0);
     if (numbytes < 0) {
-    	perror("ERROR in recving LOC reply from Binder")
+    	cerr << "ERROR in recving LOC reply from Binder" << endl;
     	exit(1); 
     } else {
         // extract first 8 bytes
@@ -228,7 +386,10 @@ int rpcCall(char* name, int* argTypes, void** args) {
     	memcpy(rcv_len, rcv_buffer, 4); 
     	memcpy(rcv_type, rcv_buffer+4, 4); 
 
-    	if (atoi(rcv_type) == 3) {                       // Type: LOC_SUCCESS
+        int len = atoi(rcv_len);
+        int type = atoi(rcv_type);
+
+    	if (type == LOC_SUCCESS) {                       // Type: LOC_SUCCESS
     		// now extract server name (128 bytes) and server port (2 bytes)
     		char *rcv_buffer[130];
     		recv(sockfd, rcv_buffer, 130, 0);
@@ -242,24 +403,24 @@ int rpcCall(char* name, int* argTypes, void** args) {
             // Now connect to target server
     		connection(server_id, server_port, sockfd); 
 
-    		int messageLen = msgLen + getArgsLength(argTypes, args);  // name, argTypes, args
+    		int messageLen = msgLen + getArgsLength(argTypes);  // name, argTypes, args
 
     		char buffer[8 + messageLen];
     		memcpy(buffer, &messageLen, 4);
     		memcpy(buffer+4, &LOC_EXUCUTE, 4);
     		memcpy(buffer+8, name, 100); 
     		memcpy(buffer+108, argTypes, getTypeLength(argTypes)); 
-            memcpy(buffer+108+getTypeLength(argTypes), args, getArgsLength(argTypes, args));
+            memcpy(buffer+108+getTypeLength(argTypes), args, getArgsLength(argTypes));
 
             // send EXECUTE request to server
     		if (send(sockfd, buffer, length+8, 0) == -1) {
-        		perror("ERROR in sending LOC_REQUEST to Binder");
+        		cerr << "ERROR in sending LOC_REQUEST to Binder" << endl;
     		} 
-            // wait for reply msg from Binder
+            // wait for reply msg from server
             char rcv_buffer[8]; 
             int numbytes = recv(sockfd, rcv_buffer, 8, 0);
             if (numbytes < 0) {
-                perror("ERROR in recving LOC reply from Binder")
+                cerr << "ERROR in recving LOC reply from Binder" << endl;
                 exit(1); 
             } else {
                 // extract first 8 bytes
@@ -268,31 +429,33 @@ int rpcCall(char* name, int* argTypes, void** args) {
                 memcpy(rcv_len, rcv_buffer, 4); 
                 memcpy(rcv_type, rcv_buffer+4, 4); 
 
-                if (atoi(rcv_type) == 3) {                       // Type: LOC_SUCCESS
-                    // now extract server name (128 bytes) and server port (2 bytes)
-                    char *rcv_buffer[130];
-                    if recv(sockfd, rcv_buffer, 130, 0);
-                    char server_id[128];
-                    char server_port[2]; 
-                    memcpy(server_id, rcv_buffer, 128); 
-                    memcpy(server_port, rcv_buffer+128, 2); 
+                len = atoi(rcv_len);
+                type = atoi(rcv_type);
+                
+                if (type == EXECUTE_SUCCESS) {         
+                    
+                    char *rcv_buffer[len];
+                    if (recv(sockfd, rcv_buffer, len, 0) < 0) {
+
+                    }
+                    extract_args(rcv_buffer, argTypes, args);  //argTypes & args are from rpcCall 
 
                     close(sockfd);  
+
+                    return RPCCALL_SUCCESS;
+                } else if (type == FAILURE) {
+                    cout << "EXECUTE FAILURE" << endl;
+                    return RPCCALL_FAILURE;
+                } else {
+                    cout << "Should not come here 1" << endl;
                 }
-    	} else if (atoi(rcv_buffer+4) == -1) {
-    		// LOC_FAILURE
-    		// add code here
-    	}
+    	} else if (type == FAILURE) {
+            cout << "LOC FAILURE" << endl;
+            return RPCCALL_FAILURE;
+    	} else {
+            cout << "Shoudl not come here 2" << endl; 
+        }
     }
-
-    // receive LOC_SUCCESS/LOC_FAILURE message from Binder
-    // 
-    // if succeed, close socket, connect to the server. 
-    // send EXECUTE_REQUEST to server
-    // receive result from server
-    //******************************************************
-
-    return 0; 
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -338,7 +501,7 @@ int rpcExecute(void) {
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
     if ((rv = getaddrinfo(NULL, PORT, &hints, &ai)) != 0) {
-        fprintf(stderr, "selectserver: %s\n", gai_strerror(rv));
+        cerr << "selectserver: " << gai_strerror(rv) << endl;
         exit(1);
     }
     
@@ -369,7 +532,7 @@ int rpcExecute(void) {
 
     // listen
     if (listen(listener, 10) == -1) {
-        perror("listen");
+        cerr << "listen" << endl;
         exit(3);
     }
 
@@ -380,10 +543,13 @@ int rpcExecute(void) {
     fdmax = listener; // so far, it's this one
 
     // main loop
+    int len; 
+    int type; 
+
     for(;;) {
         read_fds = master; // copy it
         if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
-            perror("select");
+            cerr << "select" << endl;
             exit(4);
         }
 
@@ -398,18 +564,18 @@ int rpcExecute(void) {
                         &addrlen);
 
                     if (newfd == -1) {
-                        perror("accept");
+                        cerr << "accept" << endl;
                     } else {
                         FD_SET(newfd, &master); // add to master set
                         if (newfd > fdmax) {    // keep track of the max
                             fdmax = newfd;
                         }
-                        printf("selectserver: new connection from %s on "
-                            "socket %d\n",
-                            inet_ntop(remoteaddr.ss_family,
-                                get_in_addr((struct sockaddr*)&remoteaddr),
-                                remoteIP, INET6_ADDRSTRLEN),
-                            newfd);
+                        //printf("selectserver: new connection from %s on "
+                        //    "socket %d\n",
+                        //    inet_ntop(remoteaddr.ss_family,
+                        //        get_in_addr((struct sockaddr*)&remoteaddr),
+                        //        remoteIP, INET6_ADDRSTRLEN),
+                        //    newfd);
                     }
                 } else {
                     // handle data from a client
@@ -418,9 +584,9 @@ int rpcExecute(void) {
                         // got error or connection closed by client
                         if (nbytes == 0) {
                             // connection closed
-                            printf("selectserver: socket %d hung up\n", i);
+                            cout << "selectserver: socket " << i << "hung up" << endl;
                         } else {
-                            perror("recv");
+                            cerr << "recv" << endl;
                         }
                         close(i); // bye!
                         FD_CLR(i, &master); // remove from master set
@@ -431,17 +597,30 @@ int rpcExecute(void) {
                         memcpy(rcv_len, buf, 4); 
                         memcpy(rcv_type, buf+4, 4); 
 
-                        int rcvLen = atoi(*rcv_len);  
-                        int rcvType = atoi(*rcv_type);
-                        char *rcvMsg[rcvLen];
-                            if (FD_ISSET(j, &master)) {
-                                // except the listener and ourselves
-                                if (j != listener && j != i) {
-                                    if (send(j, buf, nbytes, 0) == -1) {
-                                        perror("send");
-                                    }
+                        int len = atoi(*rcv_len);  
+                        int type = atoi(*rcv_type);
+                        char *rcvMsg[len];
+
+                        if (recv(i, rcvMsg, len, 0) < 0) {
+                            cerr << "ERROR in receiving msg from client" << endl;
+                        }
+
+
+                        // search for skeleton here
+                        // To-do:  searching for skeleton in local DB
+                        // skeleton search_skel(char* name, int* argTypes)
+                        
+                        skeleton skel_func = search_skel(char* name, int* argTypes);
+                        skel_func(argTypes, args);
+
+                        if (FD_ISSET(j, &master)) {
+                            // except the listener and ourselves
+                            if (j != listener && j != i) {
+                                if (send(j, buf, nbytes, 0) == -1) {
+                                    cerr << "send" << endl;
                                 }
                             }
+                        }
                         
                     }
                 } // END handle data from client
