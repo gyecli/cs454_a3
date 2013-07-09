@@ -671,7 +671,7 @@ int rpcExecute(void) {
                         // To-do:  searching for skeleton in local DB
                         // skeleton search_skel(char* name, int* argTypes)
                         char * name = new char[100]; 
-                        memcpy(name, rcvMsg, 100);    // TO-DO: sth wrong here
+                        memcpy(name, rcvMsg, 100);    // TO-DO: sth wrong here  
                         rcvMsg += 100; 
 
                         int *argTypes;
