@@ -153,6 +153,15 @@ int binderInit(void)
                             // It's a register request from server
                             // register to the DB
 
+                            // TODO: not sure yet.
+                            char message[length];
+                            if (recv(i, message, length, 0) < 0) {
+                                cout << "ERROR receiving message from server" << endl;
+                                exit(1);
+                            }
+
+                            binderRegister(message, length); 
+
                         } else if (type == LOC_REQUEST) {
                             // It's a location request from client
                             // DB lookup
