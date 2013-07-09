@@ -133,14 +133,9 @@ int binderInit(void)
                     // handle data from a client
                     char buf[8];    // buffer for first 8 bytes
 
-                    if ((nbytes = recv(i, buf, sizeof buf, 0)) <= 0) {
+                    if ((nbytes = recv(i, buf, sizeof buf, 0)) < 0) {
                         // got error or connection closed by client
-                        if (nbytes == 0) {
-                            // connection closed
-                            cout << "selectserver: socket " << i <<  "hung up" << endl;
-                        } else {
-                            cerr << "ERROR recv()" << endl;
-                        }
+                        cerr << "ERROR recv()" << endl;
                         close(i); // bye!
                         FD_CLR(i, &master); // remove from master set
                     } else {
