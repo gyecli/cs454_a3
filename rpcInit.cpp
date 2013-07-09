@@ -67,3 +67,8 @@ int rpcInit()
     cout<<"connection!"<<endl;
 
 }
+
+int main()
+{
+    rpcInit();
+}

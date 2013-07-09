@@ -43,6 +43,7 @@ bool Prosig::operator==(const Prosig &other) const
                 return false;
             else
             {
+                //TODO: not sure if this is correct
                 int len1, len2; 
                 len1 = (this->argTypes[i])&array_size_mask; 
                 len2 = (other.argTypes[i])&array_size_mask; 
