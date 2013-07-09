@@ -18,7 +18,7 @@
 
 #include "rpc.h"
 
-
+using namespace std; 
 
 int rpcInit()
 {
