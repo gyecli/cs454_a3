@@ -148,11 +148,6 @@ int BinderRegister()
 
 }
 
-int rpcRegister(char* name, int *argTypes, skeleton f)
-{
-
-}
-
 /*
 int main()
 {

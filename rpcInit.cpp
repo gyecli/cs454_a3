@@ -20,11 +20,12 @@
 
 using namespace std; 
 
+int sockfd;
+
 int rpcInit()
 {
 	struct sockaddr_in addr;
     char* hostAddr, *portno; 
-    int sockfd;
     //pthread_t thread1, thread2, thread3; 
     //int iret1, iret2, iret3; 
 
@@ -64,6 +65,18 @@ int rpcInit()
     }
 
     cout<<"connection!"<<endl;
+}
+
+
+int rpcRegister(char* name, int *argTypes, skeleton f)
+{
+    //firstly send to binder 
+    char* send; 
+    int argSize = getTypeLength(argTypes);
+    int totalSize = 4 + 
+    write(sockfd, (void*)send, n+4);
+
+    //store to local DB
 
 }
 

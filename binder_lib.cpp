@@ -143,16 +143,6 @@ void package(int type, char* msg)
 
 }
 
-int BinderRegister()
-{
-    return 0; 
-}
-
-int rpcRegister(char* name, int *argTypes, skeleton f)
-{
-    return 0; 
-}
-
 /*
 int main()
 {
