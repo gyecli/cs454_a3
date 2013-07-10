@@ -24,11 +24,12 @@ using namespace std;
 //class serverDB; 
 //class Prosig; 
 
+int binderSocket; 
+int clientSocket; 
 int sockfd;
 char serverID[SIZE_IDENTIFIER];
 char serverPort[SIZE_PORTNO];
 ServerDB serverDatabase; 
-
 
 void ConnectBinder()
 {
@@ -56,15 +57,15 @@ void ConnectBinder()
     addr.sin_family = AF_INET;
     addr.sin_port = htons(atoi(portno));
     memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
-    sockfd = socket(PF_INET, SOCK_STREAM, 0);
+    binderSocket = socket(PF_INET, SOCK_STREAM, 0);
 
-    if(sockfd == 0)
+    if(binderSocket == 0)
     {
         perror("ERROR socket");
         exit(-1);
     }
 
-    if(connect(sockfd, (struct sockaddr *)&addr, sizeof(addr))<0)
+    if(connect(binderSocket, (struct sockaddr *)&addr, sizeof(addr))<0)
     {
         perror("ERROR connect");
         exit(-1);
@@ -75,17 +76,13 @@ void ConnectBinder()
 //that will be used for clients 
 void GetSelfID()
 {
-    int server_socket;
     struct sockaddr_in addr;
-    int addrlen, valread; 
+    int addrlen; 
     char hostname[SIZE_IDENTIFIER];
-    fd_set readfds; 
-    int clients_sockets[MAX_CLIENTS] = {0};
-    int max_sd, sd, activity; 
 
     //server socket, which will be connected by clients later
-    server_socket = socket(PF_INET, SOCK_STREAM, 0);
-    if(server_socket == 0)
+    clientSocket = socket(PF_INET, SOCK_STREAM, 0);
+    if(clientSocket == 0)
     {
         perror("ERROR socket");
         exit(-1);
@@ -96,21 +93,21 @@ void GetSelfID()
     addr.sin_addr.s_addr = INADDR_ANY;
     addrlen = sizeof(addr); 
 
-    if(bind(server_socket, (struct sockaddr *)&addr, sizeof(addr))<0)
+    if(bind(clientSocket, (struct sockaddr *)&addr, sizeof(addr))<0)
     {
         perror("ERROR bind"); 
         exit(-1);
     }
 
     //make this socket a passive one
-    if(listen(server_socket, MAX_CLIENTS))  // max 5 conns
+    if(listen(clientSocket, MAX_CLIENTS))  // max 5 conns
     {
         perror("ERROR listen");
         exit(-1);
     }
 
     if( getsockname(
-        server_socket, 
+        clientSocket, 
         (struct sockaddr*)&addr, 
         (socklen_t*)&addrlen )
          == -1)
@@ -131,8 +128,9 @@ int rpcInit()
     ConnectBinder(); 
 
     cout<<"connection!"<<endl;
-}
 
+    return 0; 
+}
 
 int rpcRegister(char* name, int *argTypes, skeleton f)
 {
@@ -150,8 +148,11 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     memcpy(send+8+SIZE_IDENTIFIER+SIZE_PORTNO, name, SIZE_NAME); 
     memcpy(send+8+SIZE_IDENTIFIER+SIZE_PORTNO+SIZE_NAME, argTypes, argSize);
 
-    write(sockfd, (void*)send, totalSize+8);
+    write(binderSocket, (void*)send, totalSize+8);
 
     //store to local DB
-    serverDatabase.Add(Prosig((string)name, getTypeLength(argTypes), argTypes), f);
+    serverDatabase.Add(name, argTypes, f);
+
+    return 0; 
 }
+
