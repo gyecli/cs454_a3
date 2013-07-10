@@ -13,8 +13,9 @@ class Server;
 class BinderDB; 
 //procedure location 
 typedef std::pair<Prosig, Server> ProLoc;
-int getTypeLength(int* argTypes); 
 
+
+//*******************************************************************************************************
 //Procedure Signiture 
 //stores everything we need to compare 2 signitures
 //the argNum field is just for easy comparison
@@ -31,37 +32,6 @@ public:
     ~Prosig();
     bool operator==(const Prosig &other) const;
 };
-
-//server
-class Server
-{
-public:
-    char* identifier; 
-    char* portno; 
-
-    //TODO: not sure if I need a copy constructor / assignment function 
-    Server();
-    Server(char* identifier, char* portno);
-    bool operator == (const Server &other) const;
-    ~Server();
-};
-
-
-//binder database
-class BinderDB
-{
-public: 
-    std::list<ProLoc> database; 
-
-    int Register(Prosig function, Server ser);
-    std::list<ProLoc>::iterator SearchAll(Prosig function, Server ser); 
-    bool Search(Prosig function, Server *ser);
-};
-
-
-
-
-
 
 
 Prosig::Prosig(string name, int argNum, int* argTypes):name(name),argNum(argNum), argTypes(argTypes)
@@ -110,6 +80,23 @@ bool Prosig::operator==(const Prosig &other) const
     return true; 
 }
 
+
+//*******************************************************************************************************
+//server
+class Server
+{
+public:
+    char* identifier; 
+    char* portno; 
+
+    //TODO: not sure if I need a copy constructor / assignment function 
+    Server();
+    Server(char* identifier, char* portno);
+    bool operator == (const Server &other) const;
+    ~Server();
+};
+
+
 Server::Server()
 {
         //TODO: not sure if i should initialize them
@@ -140,7 +127,19 @@ Server::~Server()
     delete [] portno; 
 } 
 
+
+//*******************************************************************************************************
 //binder database
+class BinderDB
+{
+public: 
+    std::list<ProLoc> database; 
+
+    int Register(Prosig function, Server ser);
+    std::list<ProLoc>::iterator SearchAll(Prosig function, Server ser); 
+    bool Search(Prosig function, Server *ser);
+};
+
 
 int BinderDB::Register(Prosig function, Server ser)
 {
