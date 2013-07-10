@@ -27,7 +27,7 @@ char server_port[SIZE_PORTNO];
 char rcv_name[SIZE_NAME];
 //char* rcv_argTypes;
 //char** rcv_args; 
-char reasonCode; 
+int reasonCode; 
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // figure out the size (in bytes）of argTypes array, including the "0" at the end; 
@@ -477,9 +477,7 @@ int rpcExecute(void) {
                         if (newfd > fdmax) {    // keep track of the max
                             fdmax = newfd;
                         }
-
                         cout << "server: new connection on socket " << newfd << endl;
-
                     }
                 } else {
                     // handle data from a client
@@ -520,25 +518,34 @@ int rpcExecute(void) {
                         int *argTypes;
                         void** args; 
 
+                        // pack() will put info of newRcvMsg into argTypes & args respectively
                         pack(newRcvMsg, argTypes, args); 
                         
 
                         // TODO: still need the definition of search_skel()
-                        skeleton skel_func = search_skel(name, argTypes);
-                        skel_func(argTypes, args);
+                        skeleton skel_func = SearchSkeleton(name, argTypes);
+                        int exeResult = exeskel_func(argTypes, args);
 
+                        if (exeResult == EXECUTE_SUCCESS) {
+                            int messageLen = 100 + getTypeLength(argTypes) + getArgsLength(argTypes);  // name, argTypes, args
 
-                        int messageLen = 100 + getTypeLength(argTypes) + getArgsLength(argTypes);  // name, argTypes, args
+                            char buffer[8 + messageLen];
+                            memcpy(buffer, &messageLen, 4);
+                            memcpy(buffer+4, &exeResult, 4);
+                            memcpy(buffer+8, name, 100); 
+                            memcpy(buffer+108, argTypes, getTypeLength(argTypes)); 
+                            memcpy(buffer+108+getTypeLength(argTypes), args, getArgsLength(argTypes));
+                        } else {
+                            // EXECUTE_FAILURE
+                            reasonCode = -2;
+                            int messageLen = 4; 
 
-                        int exeResult = EXECUTE_SUCCESS; // TODO: miss EXECUTE_FAILURE
+                            char buffer [12];
+                            memcpy(buffer, &messageLen, 4);
+                            memcpy(buffer+4, &exeResult, 4);
+                            memcpy(buffer+8, &reasonCode, 4); 
 
-                        char buffer[8 + messageLen];
-                        memcpy(buffer, &messageLen, 4);
-                        memcpy(buffer+4, &exeResult, 4);
-                        memcpy(buffer+8, name, 100); 
-                        memcpy(buffer+108, argTypes, getTypeLength(argTypes)); 
-                        memcpy(buffer+108+getTypeLength(argTypes), args, getArgsLength(argTypes));
-                        
+                        }
                         if (FD_ISSET(i, &master)) {
                             if (send(i, buffer, nbytes, 0) == -1) {
                                 cerr << "send" << endl;
