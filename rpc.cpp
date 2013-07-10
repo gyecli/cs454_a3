@@ -19,7 +19,7 @@
 #include "rpc.h"
 #include "my_rpc.h"
 
-#define MAX_CLIENTS 50
+#define MAX_CLIENTS 10
 
 using namespace std;
 
