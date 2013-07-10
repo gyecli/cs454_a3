@@ -62,5 +62,5 @@ public:
 
 //helper functions
 int getTypeLength(int* argTypes);
-
+Prosig MakePro(char* name, int* argTypes){} //TODO, to implement 
 
