@@ -6,17 +6,6 @@
 
 using namespace std; 
 
-typedef std::pair<Prosig, skeleton> ProSer; 
-
-class ServerDB
-{
-public:
-	std::list<ProSer> database; 
-
-	void Add(Prosig function, skeleton location); 
-	list<ProSer>::iterator Search(Prosig function); 
-};
-
 void ServerDB::Add(Prosig function, skeleton location)
 {
 	list<ProSer>::iterator it = Search(function);
