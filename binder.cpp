@@ -15,15 +15,66 @@
 #include "my_rpc.h"
 #include "binder.h"
 
-#define MAX_CLIENTS 20
 
-//TODO: to be moved to other places 
-#define REGISTER 1          // Type of requests from servers
-#define LOC_REQUEST 2       // Type of requests from clients
+#define MAX_CLIENTS 20
 
 using namespace std;
 
 BinderDB db;
+
+
+
+//TODO: repetitive with Tim's code
+//should put it in some kind of library file 
+int getTypeLength(int* argTypes) {
+    int size = 0;
+    int* it = argTypes;
+    while (*it != 0) {
+        size += 4;
+        it = it+1;
+    }
+    return (size +4);
+}
+
+void package(int type, char* msg)
+{
+
+}
+
+int BinderRegister()
+{
+    return 0; 
+}
+
+int rpcRegister(char* name, int *argTypes, skeleton f)
+{
+    return 0; 
+}
+
+int binderRegister(char* received, int size)
+{
+    char server_id[SIZE_IDENTIFIER]; 
+    char portno[SIZE_PORTNO]; 
+    char name[SIZE_NAME];
+    int* argTypes;
+    memcpy(server_id, received + 8, SIZE_IDENTIFIER); 
+    memcpy(portno, received + 8 + SIZE_IDENTIFIER, SIZE_PORTNO); 
+    memcpy(name, received + 8 + SIZE_IDENTIFIER + SIZE_PORTNO, SIZE_NAME); 
+
+    int used_size = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME; 
+    char* buff = new char[size - used_size]; 
+    memcpy(buff, received + 8 + used_size, size - used_size);
+    argTypes = (int*)buff; 
+
+    Prosig pro = Prosig(string(name), getTypeLength(argTypes), argTypes);
+    Server ser = Server(server_id, portno);
+    db.Register(pro, ser); 
+
+    return 0;   // TODO: havn't figured out return type 
+}
+
+
+
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -52,11 +103,7 @@ int binderInit(void)
     struct sockaddr_in addr;
     int s_len;
 
-    //char remoteIP[INET6_ADDRSTRLEN];
-
     int i;
-
-    //struct addrinfo hints, *ai, *p;
 
     FD_ZERO(&master);    // clear the master and temp sets
     FD_ZERO(&read_fds);
@@ -151,16 +198,18 @@ int binderInit(void)
 
                         if (type == REGISTER) {
                             // It's a register request from server
-                            // register to the DB
+                            // register in the Binder DB
 
-                            // TODO: not sure yet.
                             char message[length];
                             if (recv(i, message, length, 0) < 0) {
                                 cout << "ERROR receiving message from server" << endl;
                                 exit(1);
                             }
-
-                            binderRegister(message, length); 
+                            // Now register the function
+                            if (binderRegister(message, length) < 0) {
+                                cout << "ERROR in registering functions in Binder DB" << endl;
+                                // TODO: what to do from here
+                            } 
 
                         } else if (type == LOC_REQUEST) {
                             // It's a location request from client
@@ -181,27 +230,7 @@ int binderInit(void)
     return 0;
 }
 
-int binderRegister(char* received, int size)
-{
-    char server_id[SIZE_IDENTIFIER]; 
-    char portno[SIZE_PORTNO]; 
-    char name[SIZE_NAME];
-    int* argTypes;
-    memcpy(server_id, received + 8, SIZE_IDENTIFIER); 
-    memcpy(portno, received + 8 + SIZE_IDENTIFIER, SIZE_PORTNO); 
-    memcpy(name, received + 8 + SIZE_IDENTIFIER + SIZE_PORTNO, SIZE_NAME); 
 
-    int used_size = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME; 
-    char* buff = new char[size - used_size]; 
-    memcpy(buff, received + 8 + used_size, size - used_size);
-    argTypes = (int*)buff; 
-
-    Prosig pro = Prosig(string(name), getTypeLength(argTypes), argTypes);
-    Server ser = Server(server_id, portno);
-    db.Register(pro, ser); 
-
-    return 0;   // TODO: havn't figured out return type 
-}
 
 int main()
 {
