@@ -553,10 +553,7 @@ int rpcExecute(void) {
     struct sockaddr_in addr;
     int s_len;
 
-    char remoteIP[INET6_ADDRSTRLEN];
-
-    int yes=1;        // for setsockopt() SO_REUSEADDR, below
-    int i, j, rv;
+    int i;
 
     struct addrinfo hints, *ai, *p;
 
@@ -595,11 +592,6 @@ int rpcExecute(void) {
         exit(-1);
     }
 
-    gethostname(hostName, sizeof(hostName));
-
-    cout << "BINDER_ADDRESS " << hostName << endl;
-    cout << "BINDER_PORT " << ntohs(addr.sin_port) << endl;
-
     // add the listener to the master set
     FD_SET(listener, &master);
 
@@ -634,12 +626,9 @@ int rpcExecute(void) {
                         if (newfd > fdmax) {    // keep track of the max
                             fdmax = newfd;
                         }
-                        //printf("selectserver: new connection from %s on "
-                        //    "socket %d\n",
-                        //    inet_ntop(remoteaddr.ss_family,
-                        //        get_in_addr((struct sockaddr*)&remoteaddr),
-                        //        remoteIP, INET6_ADDRSTRLEN),
-                        //    newfd);
+
+                        cout << "server: new connection on socket " << newfd << endl;
+
                     }
                 } else {
                     // handle data from a client
