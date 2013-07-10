@@ -110,7 +110,7 @@ void pack(char* buffer, int* argTypes, void** args) {
     argTypes[i] = 0; 
     argLen = getArgsLength(argTypes); 
 
-    args = new void* [num * sizeof(void *)];           // TO_DO: not sure here
+    args = new void* [num * sizeof(void *)];           // TODO: not sure here
 
     int j = 0; 
     char *temp1;
@@ -522,13 +522,15 @@ int rpcExecute(void) {
 
                         pack(newRcvMsg, argTypes, args); 
                         
+
+                        // TODO: still need the definition of search_skel()
                         skeleton skel_func = search_skel(name, argTypes);
                         skel_func(argTypes, args);
 
 
                         int messageLen = 100 + getTypeLength(argTypes) + getArgsLength(argTypes);  // name, argTypes, args
 
-                        int exeResult = EXECUTE_SUCCESS; // TO_DO: miss EXECUTE_FAILURE
+                        int exeResult = EXECUTE_SUCCESS; // TODO: miss EXECUTE_FAILURE
 
                         char buffer[8 + messageLen];
                         memcpy(buffer, &messageLen, 4);
@@ -554,5 +556,36 @@ int rpcExecute(void) {
 }
 
 
+// TODO: this main is just for testing and debugging
+int main () {
+    /* prepare the arguments for f0 */
+  int a0 = 5;
+  int b0 = 10;
+  int count0 = 3;
+  int return0;
+  int argTypes0[count0 + 1];
+  void **args0;
+
+  argTypes0[0] = (1 << ARG_OUTPUT) | (ARG_INT << 16);
+  argTypes0[1] = (1 << ARG_INPUT) | (ARG_INT << 16);
+  argTypes0[2] = (1 << ARG_INPUT) | (ARG_INT << 16);
+  argTypes0[3] = 0;
+    
+  args0 = (void **)malloc(count0 * sizeof(void *));
+  args0[0] = (void *)&return0;
+  args0[1] = (void *)&a0;
+  args0[2] = (void *)&b0;
 
 
+    /* rpcCalls */
+  int s0 = rpcCall("f0", argTypes0, args0);
+  /* test the return f0 */
+  cout << "Expected return of f0 is " << a0+b0 << endl;
+  if (s0 >= 0) { 
+    cout << "Actual return of f0 is: " << *((int *)(args0[0])) << endl; 
+  }
+  else {
+    cout << "ERROR: " << s0 << endl; 
+  }
+
+}
