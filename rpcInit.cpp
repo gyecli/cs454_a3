@@ -73,7 +73,14 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     //firstly send to binder 
     char* send; 
     int argSize = getTypeLength(argTypes);
-    int totalSize = 4 + 
+    int totalSize = 4 + SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME + argSize; 
+
+    //marshall everything into the stream to binder 
+    memcpy(send, (char*)&totalSize, 4); 
+    memcpy(send+4, (char*)REGISTER , 4);
+    memcpy(send+8, , SIZE_NAME);
+    memcpy(send+8+SIZE_IDENTIFIER, , SIZE_PORTNO); 
+
     write(sockfd, (void*)send, n+4);
 
     //store to local DB

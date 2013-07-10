@@ -41,22 +41,16 @@ void package(int type, char* msg)
 
 }
 
-int BinderRegister()
-{
-    return 0; 
-}
-
-int rpcRegister(char* name, int *argTypes, skeleton f)
-{
-    return 0; 
-}
-
 int binderRegister(char* received, int size)
 {
     char server_id[SIZE_IDENTIFIER]; 
     char portno[SIZE_PORTNO]; 
     char name[SIZE_NAME];
     int* argTypes;
+
+    //TODO: add 8 or not, it to be determined, 
+    //dependent on how binder read data from socket 
+    //should not add 8 normally
     memcpy(server_id, received + 8, SIZE_IDENTIFIER); 
     memcpy(portno, received + 8 + SIZE_IDENTIFIER, SIZE_PORTNO); 
     memcpy(name, received + 8 + SIZE_IDENTIFIER + SIZE_PORTNO, SIZE_NAME); 
@@ -72,8 +66,6 @@ int binderRegister(char* received, int size)
 
     return 0;   // TODO: havn't figured out return type 
 }
-
-
 
 
 // get sockaddr, IPv4 or IPv6:
