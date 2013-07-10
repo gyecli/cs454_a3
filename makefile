@@ -9,10 +9,10 @@ rpcInit: my_rpc rpcInit.cpp
 rpc: my_rpc rpc.cpp
 	g++ -Wall $^
 
-binder_lib: binder_lib.cpp
-	g++ -Wall -c $^ -o binder_lib
+#binder_lib: binder_lib.cpp
+#	g++ -Wall -c $^ -o binder_lib
 
-binder: binder.cpp binder_lib
+binder: binder.cpp
 	g++ -Wall $^ 
 
 server: server_db.cpp

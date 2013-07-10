@@ -53,14 +53,17 @@ typedef std::pair<Prosig, skeleton> ProSer;
 
 class ServerDB
 {
+private:
+	std::list<ProSer>::iterator SearchHelper(char* name, int* argTypes); 
+
 public:
 	std::list<ProSer> database; 
 
-	void Add(Prosig function, skeleton location); 
-	std::list<ProSer>::iterator Search(Prosig function); 
+	void Add(char* name, int* argTypes, skeleton location); 
+	skeleton SearchSkeleton(char* name, int* argTypes);
 };
 
 //helper functions
 int getTypeLength(int* argTypes);
-Prosig MakePro(char* name, int* argTypes){} //TODO, to implement 
+Prosig MakePro(char* name, int* argTypes); //TODO, to implement 
 

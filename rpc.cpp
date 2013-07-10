@@ -23,7 +23,6 @@
 
 using namespace std;
 
-
 char server_id[SIZE_IDENTIFIER];
 char server_port[SIZE_PORTNO]; 
 char rcv_name[SIZE_NAME];

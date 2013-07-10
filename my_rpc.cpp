@@ -5,9 +5,11 @@ using namespace std;
 //////////////////////////////////
 //class definition
 /////////////////////
-void ServerDB::Add(Prosig function, skeleton location)
+void ServerDB::Add(char* name, int* argTypes, skeleton location)
 {
-    list<ProSer>::iterator it = Search(function);
+    Prosig function = MakePro(name, argTypes);
+
+    list<ProSer>::iterator it = SearchHelper(name, argTypes);
     if(it == database.end())
     {
         //no current result found
@@ -22,8 +24,10 @@ void ServerDB::Add(Prosig function, skeleton location)
     }
 }
 
-list<ProSer>::iterator ServerDB::Search(Prosig function)
+list<ProSer>::iterator ServerDB::SearchHelper(char* name, int* argTypes)
 {
+    Prosig function = MakePro(name, argTypes);
+
     for(list<ProSer>::iterator it=database.begin(); it!=database.end(); ++it)
     {
         if(function == it->first)
@@ -32,8 +36,16 @@ list<ProSer>::iterator ServerDB::Search(Prosig function)
         }
     }
     return database.end(); 
-
 }
+
+skeleton ServerDB::SearchSkeleton(char* name, int* argTypes)
+{
+    list<ProSer>::iterator it = SearchHelper(name, argTypes); 
+    return it->second; 
+}
+
+////////////////////
+//heper functoin 
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // figure out the size (in bytes）of argTypes array, including the "0" at the end; 
@@ -45,4 +57,10 @@ int getTypeLength(int* argTypes) {
         it = it+1;
     }
     return (size +4);
+}
+
+Prosig MakePro(char* name, int* argTypes)
+{
+    Prosig function(string(name), getTypeLength(argTypes), argTypes); 
+    return function; 
 }

@@ -8,11 +8,31 @@
 
 using namespace std;
 
-class Prosig; 
+//type
+#define REGISTER 1
+#define LOC_REQUEST 2   
+
+//success 
+#define REGISTER_SUCCESS 0 
+#define LOC_SUCCESS 0 
+
+//failure 
+#define LOC_FAILURE -1 
+#define REGISTER_FAILURE -2  
+
+//size
+#define SIZE_IDENTIFIER 128
+#define SIZE_PORTNO 4
+#define SIZE_NAME 100
+
+#define array_size_mask ((1<<17)-1)  
+
+
+
+//class Prosig; 
 class Server; 
 class BinderDB; 
 //procedure location 
-typedef std::pair<Prosig, Server> ProLoc;
 
 
 //*******************************************************************************************************
@@ -33,6 +53,23 @@ public:
     bool operator==(const Prosig &other) const;
 };
 
+class Server
+{
+public:
+    char* identifier; 
+    char* portno; 
+
+    //TODO: not sure if I need a copy constructor / assignment function 
+    Server();
+    Server(char* identifier, char* portno);
+    bool operator == (const Server &other) const;
+    ~Server();
+};
+
+typedef std::pair<Prosig, Server> ProLoc;
+
+//////////////////
+//implementation 
 
 Prosig::Prosig(string name, int argNum, int* argTypes):name(name),argNum(argNum), argTypes(argTypes)
 {
@@ -80,23 +117,6 @@ bool Prosig::operator==(const Prosig &other) const
     return true; 
 }
 
-
-//*******************************************************************************************************
-//server
-class Server
-{
-public:
-    char* identifier; 
-    char* portno; 
-
-    //TODO: not sure if I need a copy constructor / assignment function 
-    Server();
-    Server(char* identifier, char* portno);
-    bool operator == (const Server &other) const;
-    ~Server();
-};
-
-
 Server::Server()
 {
         //TODO: not sure if i should initialize them
@@ -132,18 +152,34 @@ Server::~Server()
 //binder database
 class BinderDB
 {
+private:
+    std::list<ProLoc>::iterator SearchHelper(Prosig function, Server ser); 
+
 public: 
     std::list<ProLoc> database; 
 
     int Register(Prosig function, Server ser);
-    std::list<ProLoc>::iterator SearchAll(Prosig function, Server ser); 
-    bool Search(Prosig function, Server *ser);
+    int SearchServer(Prosig function, Server *ser);
+
 };
 
+//to find the position in the list
+//where we have the specific function & server info
+list<ProLoc>::iterator BinderDB::SearchHelper(Prosig function, Server ser)
+{
+    for(list<ProLoc>::iterator it=database.begin(); it!=database.end(); ++it)
+    {
+        if(function == it->first && ser == it->second)
+        {
+            return it; 
+        }
+    }
+    return database.end(); 
+}
 
 int BinderDB::Register(Prosig function, Server ser)
 {
-    list<ProLoc>::iterator it = SearchAll(function, ser); 
+    list<ProLoc>::iterator it = SearchHelper(function, ser); 
     if(it == database.end())
     {
         //first time for this server to register this function 
@@ -156,27 +192,25 @@ int BinderDB::Register(Prosig function, Server ser)
     return REGISTER_SUCCESS; 
 }
 
-list<ProLoc>::iterator BinderDB::SearchAll(Prosig function, Server ser)
-{
-    for(list<ProLoc>::iterator it=database.begin(); it!=database.end(); ++it)
-    {
-        if(function == it->first && ser == it->second)
-        {
-            return it; 
-        }
-    }
-    return database.end(); 
-}
-
-bool BinderDB::Search(Prosig function, Server *ser)
+//search for server given the function prototype 
+int BinderDB::SearchServer(Prosig function, Server *ser)
 {
     for(list<ProLoc>::iterator it=database.begin(); it!=database.end(); ++it)
     {
         if(function == it->first)
         {
             *ser = it->second;
-            return true; 
+            return LOC_SUCCESS; 
         }
     }
-    return false; 
+    return LOC_FAILURE; 
 }
+
+//helper function
+uint32_t char42int(char* input);
+void int2char4(uint32_t n, char* result);
+int getTypeLength(int* argTypes);
+static void error(string reason);
+Prosig MakePro(char* name, int* argTypes);
+
+
