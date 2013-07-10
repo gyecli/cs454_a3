@@ -6,7 +6,9 @@
 #include <stdlib.h>
 #include <cstdlib>
 #include <cassert>
+#include <list>
 #include <ctime>
+#include <pthread.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -28,6 +30,17 @@ char rcv_name[SIZE_NAME];
 //char* rcv_argTypes;
 //char** rcv_args; 
 int reasonCode; 
+
+fd_set master;    // master file descriptor list (used in rpcExecute())
+
+// This is for pthread arguments passing (see rpcExecute() ) 
+struct arg_struct {
+    int sockfd;         // This is for send()
+
+    char* name; 
+    int * argTypes;
+    void** args; 
+};
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // figure out the size (in bytes）of argTypes array, including the "0" at the end; 
@@ -88,13 +101,15 @@ int getArgsLength(int* argTypes) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-// 1.extract from buffer(message, and then put the data correspondly 
+// 1.extract from buffer(message), and then put the data correspondly 
 //   into argTypes & args
 // 2.argTypes & args are NOT from rpcCall()
 void pack(char* buffer, int* argTypes, void** args) {
     int num = 0;            // number of argTypes
     int argLen = 0; 
     char* it = buffer; 
+
+    // This loop is to get the size for argTypes array
     for (char* it = buffer; atoi(it) != 0; it = it+4) {
         num++; 
     }
@@ -102,23 +117,27 @@ void pack(char* buffer, int* argTypes, void** args) {
 
     int i = 0; 
     it = buffer;        // it re-points to the start of buffer
+    // Assign corresponding value into argTypes array
     for ( ; atoi(it) != 0; it = it+4) {
         argTypes[i] = atoi(it); 
         i++; 
     }
-    it += 4;                    // it now points to args in buffer
     argTypes[i] = 0; 
+    it += 4;                    // it now points to args in buffer
+
     argLen = getArgsLength(argTypes); 
 
     args = new void* [num * sizeof(void *)];           // TODO: not sure here
 
     int j = 0; 
+
     char *temp1;
     short *temp2; 
     int *temp3; 
     long *temp4;
     double *temp5;
     float *temp6;
+
     while(argTypes[j] != 0) {          // last element of argTypes is always ZERO
         // Type_mask:  (255 << 16)
         unsigned int current_type = (argTypes[j] & Type_mask) >> 16; 
@@ -209,6 +228,7 @@ void pack(char* buffer, int* argTypes, void** args) {
 //////////////////////////////////////////////////////////////////////////////////////////
 // Helper function to create a connection 
 // return 0 on success, negative number on failure
+// Assuming "sockfd" is already assigned
 int connection(const char* hostname, const char* port, int sockfd) {
 	struct addrinfo hints, *servinfo, *p;
     int rv;
@@ -246,6 +266,7 @@ int connection(const char* hostname, const char* port, int sockfd) {
 
     return 0; 
 }
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // rpcCall 
 int rpcCall(char* name, int* argTypes, void** args) { 
@@ -388,7 +409,7 @@ void *get_in_addr(struct sockaddr *sa)
 // server calls rpcExecute: wait for and receive request 
 // forward them to skeletons, and send back teh results
 int rpcExecute(void) {
-    fd_set master;    // master file descriptor list
+    //fd_set master;    // master file descriptor list
     fd_set read_fds;  // temp file descriptor list for select()
     int fdmax;        // maximum file descriptor number
 
@@ -431,7 +452,8 @@ int rpcExecute(void) {
         cerr << "ERROR bind" << endl;
         exit(-1);
     }
-    if(listen(listener, MAX_CLIENTS))  // max 5 conns
+
+    if(listen(listener, MAX_CLIENTS))  
     {
         cerr << "ERROR listen: too many client coneection requests" << endl;
         exit(-1);
@@ -450,9 +472,7 @@ int rpcExecute(void) {
     fdmax = listener; // so far, it's this one
 
     // main loop
-    int len; 
-    int type; 
-
+    std::list<pthread_t> thread_list; 
     for(;;) {
         read_fds = master; // copy it
         if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
@@ -507,52 +527,30 @@ int rpcExecute(void) {
                             cerr << "ERROR in receiving msg from client" << endl;
                         }
 
-
-                        // search for skeleton here
-                        // To-do:  searching for skeleton in local DB
-                        // skeleton search_skel(char* name, int* argTypes)
                         char * name = new char[100]; 
                         memcpy(name, rcvMsg, 100);    // TO-DO: sth wrong here  
                         char* newRcvMsg = rcvMsg + 100; 
 
-                        int *argTypes;
-                        void** args; 
+                        int* new_argTypes;
+                        void** new_args; 
 
                         // pack() will put info of newRcvMsg into argTypes & args respectively
-                        pack(newRcvMsg, argTypes, args); 
+                        pack(newRcvMsg, new_argTypes, new_args); 
                         
+                        struct arg_struct args;
+                        args->sockfd = i;
+                        args->name  = name;
+                        args->argTypes = argTypes; 
+                        args->args = args; 
 
                         // TODO: still need the definition of search_skel()
-                        skeleton skel_func = SearchSkeleton(name, argTypes);
-                        int exeResult = exeskel_func(argTypes, args);
-
-                        if (exeResult == EXECUTE_SUCCESS) {
-                            int messageLen = 100 + getTypeLength(argTypes) + getArgsLength(argTypes);  // name, argTypes, args
-
-                            char buffer[8 + messageLen];
-                            memcpy(buffer, &messageLen, 4);
-                            memcpy(buffer+4, &exeResult, 4);
-                            memcpy(buffer+8, name, 100); 
-                            memcpy(buffer+108, argTypes, getTypeLength(argTypes)); 
-                            memcpy(buffer+108+getTypeLength(argTypes), args, getArgsLength(argTypes));
-                        } else {
-                            // EXECUTE_FAILURE
-                            reasonCode = -2;
-                            int messageLen = 4; 
-
-                            char buffer [12];
-                            memcpy(buffer, &messageLen, 4);
-                            memcpy(buffer+4, &exeResult, 4);
-                            memcpy(buffer+8, &reasonCode, 4); 
-
+                        pthread_t newThread; 
+                        thread_list.push_back(newThread); 
+                        if (pthread_create(&newThread, NULL, execute, (void*) &args)) {
+                            perror("ERROR in creating new thread\n");
                         }
-                        if (FD_ISSET(i, &master)) {
-                            if (send(i, buffer, nbytes, 0) == -1) {
-                                cerr << "send" << endl;
-                            }
-                            
-                        }
-                        
+
+                        pthread_join(newThread, NULL); 
                     }
                 } // END handle data from client
             } // END got new incoming connection
@@ -560,6 +558,43 @@ int rpcExecute(void) {
     } // END for(;;)--and you thought it would never end!
     
     return 0;
+}
+
+
+void* execute(void* arguments) {
+    struct arg_struct *args = (struct arg_struct *)arguments;
+
+    skeleton skel_func = SearchSkeleton(args->name, args->argTypes);
+    int exeResult = exeskel_func(args->argTypes, args->args);
+
+    int messageLen; 
+
+    if (exeResult == EXECUTE_SUCCESS) {
+        messageLen = 100 + getTypeLength(argTypes) + getArgsLength(argTypes);  // name, argTypes, args
+
+        char buffer[8 + messageLen];
+        memcpy(buffer, &messageLen, 4);
+        memcpy(buffer+4, &exeResult, 4);
+        memcpy(buffer+8, name, 100); 
+        memcpy(buffer+108, argTypes, getTypeLength(argTypes)); 
+        memcpy(buffer+108+getTypeLength(argTypes), args, getArgsLength(argTypes));
+    } else {
+        // EXECUTE_FAILURE
+        reasonCode = -2;    // TODO: is this a good reason code?
+        messageLen = 4; 
+
+        char buffer [12];
+        memcpy(buffer, &messageLen, 4);
+        memcpy(buffer+4, &exeResult, 4);
+        memcpy(buffer+8, &reasonCode, 4); 
+
+    }
+    if (FD_ISSET(args->sockfd, &master)) {
+        if (send(args->sockfd, buffer, 8+messageLen, 0) == -1) {
+            cerr << "send" << endl;
+        }                      
+   }
+
 }
 
 
