@@ -8,6 +8,7 @@
 #define REGISTER_SUCCESS 0 
 #define LOC_SUCCESS 0 
 #define RPCCALL_SUCCESS 0
+#define EXECUTE_SUCCESS 0
 
 //failure 
 #define LOC_FAILURE -1 

@@ -127,17 +127,14 @@ void GetSelfID()
 
 int rpcInit()
 {
-    cout<<"1"<<endl;
 	GetSelfID();    
-    cout<<"2"<<endl; 
     ConnectBinder(); 
-    cout<<"3"<<endl;
     //TODO: handle error cases
     return 0; 
 }
 
 int rpcRegister(char* name, int *argTypes, skeleton f)
-{
+{    
     //firstly send to binder 
     char* send; 
     int valread;
@@ -147,18 +144,26 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
 
     //marshall everything into the stream to binder 
     memcpy(send, (char*)&totalSize, 4); 
-    memcpy(send+4, (char*)REGISTER , 4);
+    int r = REGISTER; 
+    memcpy(send+4, (char*)&r , 4);
     memcpy(send+8, serverID, SIZE_IDENTIFIER);
     memcpy(send+8+SIZE_IDENTIFIER, serverPort, SIZE_PORTNO); 
     memcpy(send+8+SIZE_IDENTIFIER+SIZE_PORTNO, name, SIZE_NAME); 
     memcpy(send+8+SIZE_IDENTIFIER+SIZE_PORTNO+SIZE_NAME, argTypes, argSize);
 
+    cout<<"before write"<<endl;
+
     write(binderSocket, (void*)send, totalSize+8);
+
+    cout<<"after write"<<endl;
 
     //TODO: error handling, eg: can't connect to binder
     //TODO: not sure if 'read' immediately after 'write' works
     char size_buff[4];
     valread = read(binderSocket, size_buff, 4);
+    cout<<"after read"<<endl;
+
+
     if(valread < 0)
     {
         error("ERROR read from socket, probably due to connection failure");

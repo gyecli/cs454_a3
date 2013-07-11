@@ -17,7 +17,10 @@
 #include <netdb.h>
 
 #include "rpc.h"
-#include "my_rpc.h"
+#include "const.h"
+#include "serverDB.h"
+#include "prosig.h"
+#include "binderDB.h"
 
 #define MAX_CLIENTS 10
 

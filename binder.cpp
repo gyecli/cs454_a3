@@ -14,7 +14,7 @@
 
 #include "const.h"
 #include "prosig.h"
-#include "server_loc.h"
+#include "server_loc.h"      // TODO: comment out for u, cuz no such header file
 #include "binderDB.h"
 #include "helper.h"
 

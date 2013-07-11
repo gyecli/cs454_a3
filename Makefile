@@ -28,9 +28,8 @@ rpcInit: rpcInit.cpp
 	g++ -Wall -c $^ -o rpcInit.o
 
 
-rpc: rpc.o rpc.cpp
-	g++ -Wall $^
-
+rpc: rpc.cpp
+	g++ -Wall -lpthread -c $^ -o rpc
  
 
 server: server_db.cpp
