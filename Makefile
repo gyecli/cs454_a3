@@ -29,8 +29,8 @@ binder: binder.cpp prosig.o server_loc.o binderDB.o helper.o
 rpcInit: rpcInit.cpp
 	g++ -Wall -c $^ -o rpcInit.o
 
-rpc: rpc.o rpc.cpp
-	g++ -Wall $^
+rpc: rpc.cpp
+	g++ -Wall -lpthread -c $^ -o rpc
 
  
 
