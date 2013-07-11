@@ -80,7 +80,7 @@ int main()
     master_socket = socket(PF_INET, SOCK_STREAM, 0);
     if(master_socket == 0)
     {
-        cerr << "ERROR socket in binder.cpp" << endl;
+        perror("ERROR socket");
         exit(-1);
     }
 
@@ -91,13 +91,13 @@ int main()
 
     if(bind(master_socket, (struct sockaddr *)&addr, sizeof(addr))<0)
     {
-        cerr << "ERROR bind in binder.cpp" << endl; 
+        perror("ERROR bind"); 
         exit(-1);
     }
 
     if(listen(master_socket, MAX_CLIENTS))  // max 5 conns
     {
-        cerr << "ERROR listen in binder.cpp" << endl; 
+        perror("ERROR listen");
         exit(-1);
     }
 
@@ -107,7 +107,7 @@ int main()
         (socklen_t*)&addrlen )
          == -1)
     {
-        cerr << "ERROR socketname in binder.cpp" << endl; 
+        perror("ERROR socketname");
         exit(-1);
     }
     gethostname(hostname, sizeof(hostname));
