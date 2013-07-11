@@ -141,7 +141,6 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     int argSize = getTypeLength(argTypes);
     int totalSize = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME + argSize; 
     send = new char[totalSize + 8];
-    cout<<totalSize<<endl;
 
     //marshall everything into the stream to binder 
     char sizeChar[4]; 
@@ -149,14 +148,16 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     memcpy(send, (char*)&totalSize, 4); 
 
     char typeChar[4];
-    int2char4(REGISTER, typeChar);
-    memcpy(send+4, typeChar , 4);
+    //int2char4(REGISTER, typeChar);
+    int t = REGISTER;
+    memcpy(send+4, (char*)&t , 4);
 
     memcpy(send+8, serverID, SIZE_IDENTIFIER);
     memcpy(send+8+SIZE_IDENTIFIER, serverPort, SIZE_PORTNO); 
     memcpy(send+8+SIZE_IDENTIFIER+SIZE_PORTNO, name, SIZE_NAME); 
     memcpy(send+8+SIZE_IDENTIFIER+SIZE_PORTNO+SIZE_NAME, argTypes, argSize);
     write(binderSocket, (void*)send, totalSize+8);
+    cout<<"sent"<<endl;
 
     //TODO: error handling, eg: can't connect to binder
     //TODO: not sure if 'read' immediately after 'write' works
@@ -175,14 +176,12 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     }
     else
     {
-        uint32_t size = char42int(size_buff); 
+        uint32_t *size = (uint32_t*)size_buff; 
         char type_buff[4];
         valread = read(binderSocket, type_buff, 4);
-        uint32_t type = char42int(type_buff);
 
-        cout << "Testing: type value =  " << type  << " in rpcInit.cpp" << endl;      // TO_DO: for testing, delete later
-
-        if(type == REGISTER_SUCCESS)
+        uint32_t *type = (uint32_t*)type_buff;
+        if(*type == REGISTER_SUCCESS)
         {
             cout << "Testing: REGISTER_SUCCESS in rpcInit.cpp" << endl;      // TO_DO: for testing, delete later
         }  

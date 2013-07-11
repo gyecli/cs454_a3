@@ -7,9 +7,10 @@
 #include "prosig.h"
 
 
-uint32_t char42int(char* input);
-void int2char4(uint32_t n, char* result);
+//uint32_t char42int(char* input);
+//void int2char4(uint32_t n, char* result);
 int getTypeLength(int* argTypes);
+int getArgNum(int* argTypes);
 void error(std::string reason);
 Prosig MakePro(char* name, int* argTypes);
 

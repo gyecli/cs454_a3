@@ -30,4 +30,4 @@
 #define Input_mask (1 << 31)
 #define Output_mask (1 << 30)
 #define Type_mask (255 << 16)
-#define array_size_mask ((1<<17)-1)	
+#define array_size_mask ((1<<16)-1)	
