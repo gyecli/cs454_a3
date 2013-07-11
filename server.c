@@ -1,6 +1,5 @@
 #include "rpc.h"
 #include "server_function_skels.h"
-#include <stdio.h>
 
 int main(int argc, char *argv[]) {
   
@@ -53,58 +52,11 @@ int main(int argc, char *argv[]) {
   /* 
    * register server functions f0~f4
    */
-  if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n");  
-  if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n");
-  
-
-  if(rpcRegister("f1", argTypes1, *f1_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n"); 
-  if(rpcRegister("f1", argTypes1, *f1_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n"); 
-  if(rpcRegister("f1", argTypes1, *f1_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n"); 
-
-
-  if(rpcRegister("f2", argTypes2, *f2_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n"); 
-  if(rpcRegister("f2", argTypes2, *f2_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n");
-
-
-  if(rpcRegister("f3", argTypes3, *f3_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n"); 
-  if(rpcRegister("f3", argTypes3, *f3_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n"); 
-
-
-  if(rpcRegister("f4", argTypes4, *f4_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n"); 
-  if(rpcRegister("f4", argTypes4, *f4_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n"); 
+  rpcRegister("f0", argTypes0, *f0_Skel);
+  rpcRegister("f1", argTypes1, *f1_Skel);
+  rpcRegister("f2", argTypes2, *f2_Skel);
+  rpcRegister("f3", argTypes3, *f3_Skel);
+  rpcRegister("f4", argTypes4, *f4_Skel);
 
   /* call rpcExecute */
   //rpcExecute();
