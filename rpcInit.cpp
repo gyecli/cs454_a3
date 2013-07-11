@@ -4,21 +4,23 @@
 #include <string.h>
 #include <sstream>
 #include <string>
-#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/ip.h>  // ip
 #include <unistd.h>  // write
 #include <arpa/inet.h>  // inet_addr
-#include <string>
 #include <pthread.h>
-#include <queue>
 #include <netdb.h>
-#include <stdlib.h>
+#include <list>
+#include <utility>
 
-#include "my_rpc.h"
+#include "rpc.h"
+#include "prosig.h"
+#include "helper.h"
+#include "serverDB.h"
+#include "const.h"
 
-#define MAX_CLIENTS 5
+#define MAX_CLIENTS 10
 
 using namespace std; 
 //class serverDB; 

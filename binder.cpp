@@ -10,11 +10,13 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <time.h>
 
-//#include "rpc.h"
-//#include "my_rpc.h"
-#include "binder.h"
-
+#include "const.h"
+#include "prosig.h"
+#include "server_loc.h"
+#include "binderDB.h"
+#include "helper.h"
 
 #define MAX_CLIENTS 10
 
@@ -42,13 +44,13 @@ int binderRegister(char* received, int size)
     argTypes = (int*)buff; 
 
     Prosig pro = Prosig(string(name), getTypeLength(argTypes), argTypes);
-    Server ser = Server(server_id, portno);
+    ServerLoc ser = ServerLoc(server_id, portno);
     db.Register(pro, ser); 
 
     return 0;   // TODO: havn't figured out return type 
 }
 
-int loc_Request(char* received, int size, Server *ser)
+int loc_Request(char* received, int size, ServerLoc *ser)
 {
     char name[SIZE_NAME];
     char* argTypes = new char[size - SIZE_IDENTIFIER];
@@ -206,7 +208,7 @@ int main()
                     }
                     else if(type == LOC_REQUEST)
                     {
-                        Server ser; 
+                        ServerLoc ser; 
                         int result = loc_Request(buff, size, &ser); 
                         if(result == LOC_SUCCESS)
                         {
@@ -246,48 +248,4 @@ int main()
     }
     close(master_socket);
     return 0;
-}
-
-uint32_t char42int(char* input)
-{
-    uint32_t result;
-    result = (uint32_t)input[3];
-    result += ((uint32_t)input[2])<<8; 
-    result += ((uint32_t)input[1])<<16;
-    result += ((uint32_t)input[0])<<24;
-
-    return result;
-}
-
-void int2char4(uint32_t n, char* result)
-{
-    result[0] = (n >> 24) & 0xFF;
-    result[1] = (n >> 16) & 0xFF;
-    result[2] = (n >> 8) & 0xFF;
-    result[3] = n & 0xFF;
-}
-
-static void error(string reason)
-{
-    #ifdef _DEBUG
-        cout<<reason<<endl; 
-    #endif
-}
-
-
-Prosig MakePro(char* name, int* argTypes)
-{
-    Prosig function(string(name), getTypeLength(argTypes), argTypes); 
-    return function; 
-}
-
-int getTypeLength(int* argTypes) 
-{
-    int size = 0;
-    int* it = argTypes;
-    while (*it != 0) {
-        size += 4;
-        it = it+1;
-    }
-    return (size +4);
 }
