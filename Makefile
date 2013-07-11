@@ -12,8 +12,8 @@ my_rpc.o: my_rpc.cpp
 rpcInit.o: rpc.o rpcInit.cpp
 	g++ -Wall -c $^ -o $@
 
-rpc: rpc.cpp
-	g++ -Wall -c -lpthread $^ -o rpc
+rpc: rpc.o rpc.cpp
+	g++ -Wall $^
 
 binder: binder.cpp
 	g++ -Wall $^ 

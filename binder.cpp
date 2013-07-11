@@ -50,8 +50,6 @@ int binderRegister(char* received, int size)
 
 int loc_Request(char* received, int size, Server *ser)
 {
-    //char server_id[SIZE_IDENTIFIER]; 
-    //char portno[SIZE_PORTNO]; 
     char name[SIZE_NAME];
     char* argTypes = new char[size - SIZE_IDENTIFIER];
 
@@ -177,7 +175,8 @@ int main()
                     {
                         int result = binderRegister(buff, size); 
                         if(result == REGISTER_SUCCESS)
-                        {                            
+                        {
+                            //only return REGISTER_SUCCESS, nothing else                            
                             uint32_t length = 0; 
                             char* sendChar = new char[8 + length];
                             char lengthChar[4]; 
@@ -188,18 +187,21 @@ int main()
                             memcpy(sendChar, resultChar, 4);
                             send(sd, sendChar, 8, 0); 
                         }
-                        else if(result == REGISTER_FAILURE)
+                        else if(result != REGISTER_FAILURE)
                         {
+                            //returns REGISTER_FAILURE, with an error code
                             uint32_t length = 4; 
                             char* sendChar = new char[8 + length];
                             char lengthChar[4]; 
+                            char failChar[4]; 
                             char resultChar[4]; 
                             int2char4(length, lengthChar);
+                            int2char4(REGISTER_FAILURE, failChar);
                             int2char4(result, resultChar); 
                             memcpy(sendChar, lengthChar, 4); 
-                            memcpy(sendChar, resultChar, 4);
-                            //TODO: 
-                            //send(sd, sendChar, length + 8, 0); 
+                            memcpy(sendChar + 4, failChar,4);
+                            memcpy(sendChar + 8, resultChar, 4); 
+                            send(sd, sendChar, length + 8, 0); 
                         }
                     }
                     else if(type == LOC_REQUEST)
@@ -208,16 +210,33 @@ int main()
                         int result = loc_Request(buff, size, &ser); 
                         if(result == LOC_SUCCESS)
                         {
-                            char* sendChar = new char[4 + SIZE_IDENTIFIER + SIZE_PORTNO];
+                            int length = SIZE_IDENTIFIER + SIZE_PORTNO; 
+                            char* sendChar = new char[8 + length];
+                            char lengthChar[4]; 
                             char resultChar[4]; 
+                            int2char4(length, lengthChar);
                             int2char4(result, resultChar);
-                            memcpy(sendChar, resultChar, 4); 
+                            memcpy(sendChar, lengthChar, 4); 
+                            memcpy(sendChar + 4, resultChar, 4); 
+                            memcpy(sendChar + 8, ser.identifier, SIZE_IDENTIFIER);
+                            memcpy(sendChar + 8 + SIZE_IDENTIFIER, ser.portno, SIZE_PORTNO); 
 
-                            //send();
+                            send(sd, sendChar, length + 8, 0);
                         }
-                        else if(result == LOC_FAILURE)
+                        else if(result != LOC_SUCCESS)
                         {
-
+                            int length = 4; 
+                            char* sendChar = new char[8 + length];
+                            char lengthChar[4]; 
+                            char failChar[4]; 
+                            char resultChar[4]; 
+                            int2char4(length, lengthChar);
+                            int2char4(LOC_FAILURE, failChar); 
+                            int2char4(result, resultChar);
+                            memcpy(sendChar, lengthChar, 4); 
+                            memcpy(sendChar + 4, failChar, 4);
+                            memcpy(sendChar + 8, resultChar, 4);
+                            send(sd, sendChar, length + 8, 0); 
                         }
                     }
                     delete [] buff;
@@ -225,7 +244,6 @@ int main()
             }
         }
     }
-
     close(master_socket);
     return 0;
 }
