@@ -26,6 +26,7 @@ BinderDB db;
 
 int binderRegister(char* received, int size)
 {
+    cout<<"here"<<endl;
     char server_id[SIZE_IDENTIFIER]; 
     char portno[SIZE_PORTNO]; 
     char name[SIZE_NAME];
@@ -37,7 +38,7 @@ int binderRegister(char* received, int size)
     memcpy(server_id, received, SIZE_IDENTIFIER); 
     memcpy(portno, received + SIZE_IDENTIFIER, SIZE_PORTNO); 
     memcpy(name, received + SIZE_IDENTIFIER + SIZE_PORTNO, SIZE_NAME); 
-
+    
     int used_size = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME; 
     char* buff = new char[size - used_size]; 
     memcpy(buff, received + used_size, size - used_size);
@@ -45,9 +46,9 @@ int binderRegister(char* received, int size)
 
     Prosig pro = Prosig(string(name), getTypeLength(argTypes), argTypes);
     ServerLoc ser = ServerLoc(server_id, portno);
-    db.Register(pro, ser); 
+    return db.Register(pro, ser); 
 
-    return 0;   // TODO: havn't figured out return type 
+    //return 0;   // TODO: havn't figured out return type 
 }
 
 int loc_Request(char* received, int size, ServerLoc *ser)
@@ -166,16 +167,18 @@ int main()
                 }
                 else
                 {
-                    uint32_t size = char42int(size_buff);
+                    //TODO: may just not to use char to int & int to char
+                    //uint32_t size = char42int(size_buff);
+                    uint32_t *size = (uint32_t*)size_buff;
                     valread = read(sd, type_buff, 4);
                     uint32_t type = char42int(type_buff);  
 
-                    buff = new char[size+10]; 
-                    valread = read(sd, buff, size+10);
+                    buff = new char[*size+10]; 
+                    valread = read(sd, buff, *size+10);
 
                     if(type == REGISTER)
                     {
-                        int result = binderRegister(buff, size); 
+                        int result = binderRegister(buff, *size); 
                         if(result == REGISTER_SUCCESS)
                         {
                             //only return REGISTER_SUCCESS, nothing else                            
@@ -208,8 +211,9 @@ int main()
                     }
                     else if(type == LOC_REQUEST)
                     {
+                        cout<<"received a loc_Request"<<endl;
                         ServerLoc ser; 
-                        int result = loc_Request(buff, size, &ser); 
+                        int result = loc_Request(buff, *size, &ser); 
                         if(result == LOC_SUCCESS)
                         {
                             int length = SIZE_IDENTIFIER + SIZE_PORTNO; 

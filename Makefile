@@ -22,7 +22,7 @@ serverDB: serverDB.cpp
 	g++ -Wall -c -o binderDB.o $^
 
 binder: binder.cpp prosig.o server_loc.o binderDB.o helper.o
-	g++ -Wall $^
+	g++ -Wall $^ -o binder
 
 rpcInit: rpcInit.cpp
 	g++ -Wall -c $^ -o rpcInit.o

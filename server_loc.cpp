@@ -28,6 +28,6 @@ bool ServerLoc::operator == (const ServerLoc &other) const
 
 ServerLoc::~ServerLoc()
 {
-    delete [] identifier;
-    delete [] portno; 
+    //delete [] identifier;
+    //delete [] portno; 
 } 
