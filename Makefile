@@ -1,6 +1,6 @@
 all: librpc.a
 
-librpc.a: my_rpc.o rpcInit.o prosig.o server_loc.o binderDB.o
+librpc.a: rpcInit.o server_loc.o prosig.o helper.o serverDB.o
 	ar rvs $@ $^
 
 test: librpc.a server.c server_functions.c server_function_skels.c
@@ -28,10 +28,6 @@ binder: binder.cpp prosig.o server_loc.o binderDB.o helper.o
 
 rpcInit: rpcInit.cpp
 	g++ -Wall -c $^ -o rpcInit.o
-
-
-my_rpc.o: my_rpc.cpp
-	g++ -Wall -c $^ -o $@
 
 rpc: rpc.o rpc.cpp
 	g++ -Wall $^
