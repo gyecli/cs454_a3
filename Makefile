@@ -3,8 +3,11 @@ all: librpc.a
 librpc.a: rpc.o server_loc.o prosig.o helper.o serverDB.o
 	ar rvs $@ $^
 
-test: librpc.a server.c server_functions.c server_function_skels.c
-	g++ -Wall -o test.run $^
+testserver: librpc.a server.c server_functions.c server_function_skels.c
+	g++ -Wall -o testserver.run $^
+
+testclient: librpc.a client1.c
+	g++ -Wall -o testclient.run $^
 
 prosig: prosig.cpp
 	g++ -Wall -c -o prosig.o $^

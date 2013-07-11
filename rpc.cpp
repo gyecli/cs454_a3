@@ -458,6 +458,8 @@ int rpcCall(char* name, int* argTypes, void** args) {
 
     	if (type == LOC_SUCCESS) {                 
     		// now extract server name (128 bytes) and server port (2 bytes)
+            cout << "LOC_SUCCESS in rpcCall()" << endl;
+
     		char rcv_buffer[SIZE_IDENTIFIER + SIZE_PORTNO];
     		recv(sockfd, rcv_buffer, (SIZE_IDENTIFIER + SIZE_PORTNO), 0);
     		char server_id[SIZE_IDENTIFIER];
@@ -465,7 +467,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
     		memcpy(server_id, rcv_buffer, SIZE_IDENTIFIER); 
     		memcpy(server_port, rcv_buffer+SIZE_IDENTIFIER, SIZE_PORTNO); 
 
-    		close(sockfd); 
+    		close(sockfd);    // close socket between client and binder
 
             // Now connect to target server
     		if (connection(server_id, server_port, &sockfd) < 0) {
@@ -488,6 +490,8 @@ int rpcCall(char* name, int* argTypes, void** args) {
         		cout << "ERROR in sending LOC_REQUEST to Binder" << endl;
                 return -1; 
     		} 
+            cout << "Sent EXECUTE request to server" << endl;
+
             // wait for reply msg from server
             char rcv_buffer1[8]; 
             int numbytes = recv(sockfd, rcv_buffer1, 8, 0);
