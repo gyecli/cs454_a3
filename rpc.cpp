@@ -1,26 +1,27 @@
 // This file has all the rpc funcitons
 
 #include <iostream>
-#include <string>
-#include <cstring>
+#include <stdio.h>
 #include <stdlib.h>
-#include <cstdlib>
-#include <cassert>
-#include <list>
-#include <ctime>
-#include <pthread.h>
-#include <unistd.h>
+#include <string.h>
+#include <sstream>
+#include <string>
+#include <algorithm>    // std::max
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include <netinet/ip.h>  // ip
+#include <unistd.h>  // write
+#include <arpa/inet.h>  // inet_addr
+#include <pthread.h>
 #include <netdb.h>
+#include <list>
+#include <utility>
 
 #include "rpc.h"
-#include "const.h"
-#include "serverDB.h"
 #include "prosig.h"
-#include "binderDB.h"
+#include "helper.h"
+#include "serverDB.h"
+#include "const.h"
 
 #define MAX_CLIENTS 10
 
@@ -33,11 +34,23 @@ char rcv_name[SIZE_NAME];
 //char** rcv_args; 
 int reasonCode; 
 
-ServerDB serverDatabase;    // TODO: already in rpcInit.cpp 
-
-int binderSocket;           // TODO: This is defined in rpcInit.cpp
+//ServerDB serverDatabase;    // TODO: already in rpcInit.cpp 
+//int binderSocket;           // TODO: This is defined in rpcInit.cpp
 fd_set master;    // master file descriptor list (used in rpcExecute())
 int terminate_flag = 0;     // 1 means receive terminate request
+
+
+// These are origially form rpcInit.cpp
+int binderSocket; 
+int clientSocket; 
+//int sockfd;
+char serverID[SIZE_IDENTIFIER];
+char serverPort[SIZE_PORTNO];
+
+ServerDB serverDatabase; 
+//
+
+
 
 // This is for pthread arguments passing (see rpcExecute() ) 
 struct arg_struct {
@@ -51,62 +64,6 @@ struct arg_struct {
 
 void* execute(void* arguments);  // Prototype
 //////////////////////////////////////////////////////////////////////////////////////////
-// figure out the size (in bytes）of argTypes array, including the "0" at the end; 
-int getTypeLength(int* argTypes) {
-	int size = 0;
-	int* it = argTypes;
-	while (*it != 0) {
-		size += 4;
-		it = it+1;
-	}
-	return (size +4);
-}
-
-// get the total length of args in bytes
-int getArgsLength(int* argTypes) {
-	int* it = argTypes; 
-	int total_len = 0; 	       // # of bytes
-	while(*it != 0) {          // last element of argTypes is always ZERO
-        // Type_mask = (255 << 16)
-		unsigned int current_type = ((*it) & Type_mask) >> 16; 
-
-		unsigned int num = ((*it) & array_size_mask);  // # of current arg of current_type
-		if (num == 0) {
-			num = 1; 
-		}
-
-		switch(current_type) {
-			case ARG_CHAR:
-				// type: char
-				total_len += 1 * num; 
-				break; 
-			case ARG_SHORT:
-				// type: short
-				total_len += 2 * num; 
-				break;
-			case ARG_INT:
-				// type: int
-				total_len +=  4 * num; 
-				break;
-			case ARG_LONG:
-				// type: long
-				total_len += 4 * num; 
-				break;
-			case ARG_DOUBLE:
-				// type: double
-				total_len += 8 * num; 
-				break; 
-			case ARG_FLOAT:
-				// type: float
-				total_len += 4 * num; 
-				break;
-			default:
-				break;
-		}
-		it++;
-	}
-	return total_len; 
-}
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // 1.extract from buffer(message), and then put the data correspondly 
@@ -275,6 +232,183 @@ int connection(const char* hostname, const char* port, int *sockfd) {
     return 0; 
 }
 
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// The following are originally form rpcInit.cpp
+void ConnectBinder()
+{
+    struct sockaddr_in addr;
+    char* hostAddr, *portno; 
+
+    if((hostAddr = getenv("BINDER_ADDRESS")) == 0)
+    {
+        perror("can't get env variable SERVER_ADDRESS"); 
+        exit(-1);
+    }
+    if((portno = getenv("BINDER_PORT"))==0)
+    {
+        perror("can't get env variable SERVER_PORT");
+        exit(-1);
+    }
+    struct hostent *he;
+    if ( (he = gethostbyname(hostAddr) ) == NULL ) 
+    {
+        perror("ERROR gethostbyname");
+        exit(-1);
+    }
+
+    /* copy the network address to sockaddr_in structure */
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(atoi(portno));
+    memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
+    binderSocket = socket(PF_INET, SOCK_STREAM, 0);
+
+    if(binderSocket == 0)
+    {
+        perror("ERROR socket");
+        exit(-1);
+    }
+
+    if(connect(binderSocket, (struct sockaddr *)&addr, sizeof(addr))<0)
+    {
+        perror("ERROR connect");
+        exit(-1);
+    }
+
+    cout << "In ConnectBinder, binderSocket = " << binderSocket << endl;
+}
+
+//Determine the identifier & portno 
+//that will be used for clients 
+void GetSelfID()
+{
+    struct sockaddr_in addr;
+    int addrlen; 
+    char hostname[SIZE_IDENTIFIER];
+
+    //server socket, which will be connected by clients later
+    clientSocket = socket(PF_INET, SOCK_STREAM, 0);
+    if(clientSocket == 0)
+    {
+        perror("ERROR socket");
+        exit(-1);
+    }
+
+    addr.sin_family = AF_INET;
+    addr.sin_port = 0;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addrlen = sizeof(addr); 
+
+    if(bind(clientSocket, (struct sockaddr *)&addr, sizeof(addr))<0)
+    {
+        perror("ERROR bind"); 
+        exit(-1);
+    }
+
+    //make this socket a passive one
+    if(listen(clientSocket, MAX_CLIENTS))  
+    {
+        perror("ERROR listen");
+        exit(-1);
+    }
+
+    if( getsockname(
+        clientSocket, 
+        (struct sockaddr*)&addr, 
+        (socklen_t*)&addrlen )
+         == -1)
+    {
+        perror("ERROR socketname");
+        exit(-1);
+    }
+    gethostname(hostname, sizeof(hostname));
+
+    memcpy(serverID, hostname, SIZE_IDENTIFIER); 
+    uint16_t pno = ntohs(addr.sin_port); 
+    memcpy(serverPort, (char*)(&pno), SIZE_PORTNO); 
+
+    cout << "In GetSelfID, clientSocket = " << clientSocket << endl;
+}
+
+int rpcInit()
+{
+    GetSelfID();    
+    ConnectBinder(); 
+    //TODO: handle error cases
+    return 0; 
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+int rpcRegister(char* name, int *argTypes, skeleton f)
+{    
+    //firstly send to binder 
+    char* send; 
+    int valread;
+    int argSize = getTypeLength(argTypes);
+    int totalSize = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME + argSize; 
+    send = new char[totalSize + 8];
+
+    //marshall everything into the stream to binder 
+    char sizeChar[4]; 
+    //int2char4(totalSize, sizeChar);
+    memcpy(send, (char*)&totalSize, 4); 
+
+    char typeChar[4];
+    //int2char4(REGISTER, typeChar);
+    int t = REGISTER;
+    memcpy(send+4, (char*)&t , 4);
+
+    memcpy(send+8, serverID, SIZE_IDENTIFIER);
+    memcpy(send+8+SIZE_IDENTIFIER, serverPort, SIZE_PORTNO); 
+    memcpy(send+8+SIZE_IDENTIFIER+SIZE_PORTNO, name, SIZE_NAME); 
+    memcpy(send+8+SIZE_IDENTIFIER+SIZE_PORTNO+SIZE_NAME, argTypes, argSize);
+    write(binderSocket, (void*)send, totalSize+8);
+    cout<<"sent"<<endl;
+
+    //TODO: error handling, eg: can't connect to binder
+    //TODO: not sure if 'read' immediately after 'write' works
+    char size_buff[4];
+    valread = read(binderSocket, size_buff, 4);
+
+
+    if(valread < 0)
+    {
+        error("ERROR read from socket, probably due to connection failure");
+        return REGISTER_FAILURE; 
+    }
+    else if(valread == 0)
+    {
+        return REGISTER_FAILURE; 
+    }
+    else
+    {
+        uint32_t *size = (uint32_t*)size_buff; 
+        char type_buff[4];
+        valread = read(binderSocket, type_buff, 4);
+
+        uint32_t *type = (uint32_t*)type_buff;
+        if(*type == REGISTER_SUCCESS)
+        {
+            cout << "Testing: REGISTER_SUCCESS in rpc.cpp" << endl;      // TO_DO: for testing, delete later
+        }  
+        else
+        {
+            //read error here
+            cout << "Testing: REGISTER_FAILURE in rpc.cpp" << endl;      // TO_DO: for testing, delete later
+            return REGISTER_FAILURE; 
+        }
+    }
+    cout << "Testing: REGISTER_SUCCESS in rpc.cpp end" << endl;      // TO_DO: for testing, delete later
+    //store to local DB
+    serverDatabase.Add(name, argTypes, f);
+
+    // TODO:  sorry, where is the registeration to Binder? (may be i missed it)
+    return REGISTER_SUCCESS; 
+
+}
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // rpcCall 
 int rpcCall(char* name, int* argTypes, void** args) { 
@@ -441,47 +575,50 @@ int rpcExecute(void) {
 
     //******************************************************************
     // get a free port
-    listener = socket(PF_INET, SOCK_STREAM, 0);
+    //listener = socket(PF_INET, SOCK_STREAM, 0);
 
-    if(listener == 0)
-    {
-        cerr << "ERROR listen" << endl;
-        exit(-1);
-    }
+    //if(listener == 0)
+    //{
+    //    cerr << "ERROR listen" << endl;
+    //    exit(-1);
+    //}
 
-    addr.sin_family = AF_INET;
-    addr.sin_port = 0;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    s_len = sizeof(addr);
+    //addr.sin_family = AF_INET;
+    //addr.sin_port = 0;
+    //addr.sin_addr.s_addr = INADDR_ANY;
+    //s_len = sizeof(addr);
 
-    if(bind(listener, (struct sockaddr *)&addr, sizeof(addr))<0)
-    {
-        cerr << "ERROR bind" << endl;
-        exit(-1);
-    }
+    //if(bind(listener, (struct sockaddr *)&addr, sizeof(addr))<0)
+    //{
+    //    cerr << "ERROR bind" << endl;
+    //    exit(-1);
+    //}
 
-    if(listen(listener, MAX_CLIENTS))  
-    {
-        cerr << "ERROR listen: too many client coneection requests" << endl;
-        exit(-1);
-    }
+    //if(listen(listener, MAX_CLIENTS))  
+    //{
+    //    cerr << "ERROR listen: too many client coneection requests" << endl;
+    //    exit(-1);
+    //}
 
-    if(getsockname(listener, (struct sockaddr*)&addr, (socklen_t*)&s_len ) == -1)
-    {
-        cerr << "ERROR getsockname" << endl;
-        exit(-1);
-    }
+    //if(getsockname(listener, (struct sockaddr*)&addr, (socklen_t*)&s_len ) == -1)
+    //{
+    //    cerr << "ERROR getsockname" << endl;
+    //    exit(-1);
+    //}
 
-    // add the listener to the master set
-    FD_SET(listener, &master);
+    // add the clientSocket to the master set
+    FD_SET(clientSocket, &master);
 
     FD_SET(binderSocket, &master);    // TO_DO: can i just add the binderSocket to the set and then listen on it?
 
     // keep track of the biggest file descriptor
-    fdmax = listener; // so far, it's this one
+    fdmax = max(clientSocket, binderSocket); // so far, it's this one
 
     // main loop
     std::list<pthread_t> thread_list; 
+
+    cout << "In rpcExecute(), clientSocket = " << clientSocket << endl;
+    cout << "In rpcExecute(), binderSocket = " << binderSocket << endl;
 
     for(;;) {
         read_fds = master; // copy it
@@ -493,15 +630,13 @@ int rpcExecute(void) {
         // run through the existing connections looking for data to read
         for(i = 0; i <= fdmax; i++) {
             if (FD_ISSET(i, &read_fds)) { // we got one!!
-                if (i == listener && terminate_flag == 0) {
+                if (i == clientSocket && terminate_flag == 0) {
                     // handle new connections
                     addrlen = sizeof remoteaddr;
-                    newfd = accept(listener,
-                        (struct sockaddr *)&remoteaddr,
-                        &addrlen);
+                    newfd = accept(clientSocket, (struct sockaddr *)&remoteaddr, &addrlen);
 
                     if (newfd == -1) {
-                        cerr << "accept" << endl;
+                        cerr << "ERROR in accept in rpcExecute() of rpc.cpp" << endl;
                     } else {
                         FD_SET(newfd, &master); // add to master set
                         if (newfd > fdmax) {    // keep track of the max
@@ -512,7 +647,8 @@ int rpcExecute(void) {
                 } else if (terminate_flag == 0) {           
                     // handle data from a client
                     char buf[8];    // buffer for client data
-                    if ((nbytes = recv(i, buf, sizeof (buf), 0)) <= 0) {
+                    cout << "In rpcExecute(), waiting to receive data from clients" << endl;
+                    if ((nbytes = recv(i, buf, sizeof (buf), 0)) <= 0) {        // TO_DO:  should I put "=" here?
                         // got error or connection closed by client
                         if (nbytes == 0) {
                             // connection closed
@@ -524,6 +660,7 @@ int rpcExecute(void) {
                         FD_CLR(i, &master); // remove from master set
                     } else {
                         // we got some data from a client
+                        cout << "TESTING: in rpcExecute() of rpc.cpp" << endl;
                         char rcv_len[4];
                         char rcv_type[4]; 
                         memcpy(rcv_len, buf, 4); 
@@ -664,34 +801,10 @@ int rpcTerminate(void) {
     close(sockfd); 
     return TERMINATE_SUCCESS;
 }
-/*
-// TODO: this main is just for testing and debugging
-int main () {
-  int a0 = 5;
-  int b0 = 10;
-  int count0 = 3;
-  int return0;
-  int argTypes0[count0 + 1];
-  void **args0;
-
-  argTypes0[0] = (1 << ARG_OUTPUT) | (ARG_INT << 16);
-  argTypes0[1] = (1 << ARG_INPUT) | (ARG_INT << 16);
-  argTypes0[2] = (1 << ARG_INPUT) | (ARG_INT << 16);
-  argTypes0[3] = 0;
-    
-  args0 = (void **)malloc(count0 * sizeof(void *));
-  args0[0] = (void *)&return0;
-  args0[1] = (void *)&a0;
-  args0[2] = (void *)&b0;
 
 
-  int s0 = rpcCall("f0", argTypes0, args0);
-  cout << "Expected return of f0 is " << a0+b0 << endl;
-  if (s0 >= 0) { 
-    cout << "Actual return of f0 is: " << *((int *)(args0[0])) << endl; 
-  }
-  else {
-    cout << "ERROR: " << s0 << endl; 
-  }
 
-}*/
+
+
+
+

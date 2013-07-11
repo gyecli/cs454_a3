@@ -29,7 +29,7 @@ using namespace std;
 list<ProLoc>::iterator BinderDB::SearchHelper(Prosig function, ServerLoc ser)
 {
     int i=0; 
-    cout<<"size:"<<database.size()<<endl; 
+    cout<<"TESTing: in binder.cpp, Binder size:"<<database.size()<<endl; 
     for(list<ProLoc>::iterator it=database.begin(); it!=database.end(); ++it)
     {
         cout<<i<<endl;

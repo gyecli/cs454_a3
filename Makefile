@@ -1,6 +1,6 @@
 all: librpc.a
 
-librpc.a: rpcInit.o server_loc.o prosig.o helper.o serverDB.o
+librpc.a: rpc.o server_loc.o prosig.o helper.o serverDB.o
 	ar rvs $@ $^
 
 test: librpc.a server.c server_functions.c server_function_skels.c
@@ -29,7 +29,7 @@ rpcInit: rpcInit.cpp
 
 
 rpc: rpc.cpp
-	g++ -Wall -lpthread -c $^ -o rpc
+	g++ -Wall -lpthread -c $^ -o rpc.o
  
 
 server: server_db.cpp

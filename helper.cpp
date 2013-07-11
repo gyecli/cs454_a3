@@ -58,3 +58,51 @@ int getArgNum(int* argTypes)
     }
     return num;
 }
+
+
+// Added by Tim (moved from rpc.cpp)
+// get the total length of args in bytes
+int getArgsLength(int* argTypes) {
+    int* it = argTypes; 
+    int total_len = 0;         // # of bytes
+    while(*it != 0) {          // last element of argTypes is always ZERO
+        // Type_mask = (255 << 16)
+        unsigned int current_type = ((*it) & Type_mask) >> 16; 
+
+        unsigned int num = ((*it) & array_size_mask);  // # of current arg of current_type
+        if (num == 0) {
+            num = 1; 
+        }
+
+        switch(current_type) {
+            case ARG_CHAR:
+                // type: char
+                total_len += 1 * num; 
+                break; 
+            case ARG_SHORT:
+                // type: short
+                total_len += 2 * num; 
+                break;
+            case ARG_INT:
+                // type: int
+                total_len +=  4 * num; 
+                break;
+            case ARG_LONG:
+                // type: long
+                total_len += 4 * num; 
+                break;
+            case ARG_DOUBLE:
+                // type: double
+                total_len += 8 * num; 
+                break; 
+            case ARG_FLOAT:
+                // type: float
+                total_len += 4 * num; 
+                break;
+            default:
+                break;
+        }
+        it++;
+    }
+    return total_len; 
+}
