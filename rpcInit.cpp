@@ -127,9 +127,11 @@ void GetSelfID()
 
 int rpcInit()
 {
-	GetSelfID();     
+    cout<<"1"<<endl;
+	GetSelfID();    
+    cout<<"2"<<endl; 
     ConnectBinder(); 
-
+    cout<<"3"<<endl;
     //TODO: handle error cases
     return 0; 
 }
