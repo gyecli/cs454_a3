@@ -35,7 +35,9 @@ int reasonCode;
 
 ServerDB serverDatabase;    // TODO: already in rpcInit.cpp 
 
+int binderSocket;           // TODO: This is defined in rpcInit.cpp
 fd_set master;    // master file descriptor list (used in rpcExecute())
+int terminate_flag = 0;     // 1 means receive terminate request
 
 // This is for pthread arguments passing (see rpcExecute() ) 
 struct arg_struct {
@@ -295,8 +297,8 @@ int rpcCall(char* name, int* argTypes, void** args) {
     char buffer[msgLen + 8];
     unsigned int requestType = LOC_REQUEST;
 
-    memcpy(buffer, &msgLen, 4);                 // first 4 bytes stores length of msg
-    memcpy(buffer+4, &requestType, 4);          // next 4 bytes stores types info
+    memcpy(buffer, (char *) &msgLen, 4);                 // first 4 bytes stores length of msg
+    memcpy(buffer+4, (char *) &requestType, 4);          // next 4 bytes stores types info
     memcpy(buffer+8, name, SIZE_NAME);                // and then msg = name + argTypes
     memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
 
@@ -341,8 +343,8 @@ int rpcCall(char* name, int* argTypes, void** args) {
             requestType = EXECUTE;
 
     		char buffer[8 + messageLen];
-    		memcpy(buffer, &messageLen, 4);
-    		memcpy(buffer+4, &requestType, 4);
+    		memcpy(buffer, (char *) &messageLen, 4);
+    		memcpy(buffer+4, (char *) &requestType, 4);
     		memcpy(buffer+8, name, SIZE_NAME); 
     		memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
             memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), args, getArgsLength(argTypes));
@@ -473,22 +475,25 @@ int rpcExecute(void) {
     // add the listener to the master set
     FD_SET(listener, &master);
 
+    FD_SET(binderSocket, &master);    // TO_DO: can i just add the binderSocket to the set and then listen on it?
+
     // keep track of the biggest file descriptor
     fdmax = listener; // so far, it's this one
 
     // main loop
     std::list<pthread_t> thread_list; 
+
     for(;;) {
         read_fds = master; // copy it
         if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
-            cerr << "select" << endl;
+            cerr << "ERROR in select in rpcExecute()" << endl;
             exit(4);
         }
 
         // run through the existing connections looking for data to read
         for(i = 0; i <= fdmax; i++) {
             if (FD_ISSET(i, &read_fds)) { // we got one!!
-                if (i == listener) {
+                if (i == listener && terminate_flag == 0) {
                     // handle new connections
                     addrlen = sizeof remoteaddr;
                     newfd = accept(listener,
@@ -504,7 +509,7 @@ int rpcExecute(void) {
                         }
                         cout << "server: new connection on socket " << newfd << endl;
                     }
-                } else {
+                } else if (terminate_flag == 0) {           
                     // handle data from a client
                     char buf[8];    // buffer for client data
                     if ((nbytes = recv(i, buf, sizeof (buf), 0)) <= 0) {
@@ -525,8 +530,21 @@ int rpcExecute(void) {
                         memcpy(rcv_type, buf+4, 4); 
 
                         int len = atoi(rcv_len);  
-                        //int type = atoi(rcv_type);
+                        int type = atoi(rcv_type);
                         char rcvMsg[len];
+
+                        if (type == TERMINATE) {
+                            // Need to verify Sender's ID (Binder)
+                            // TO_DO: add verification code here
+
+                            // Go to shut-down routine 
+                            terminate_flag = 1; 
+
+                            // break the loop of running through the existing connections looking for data to read
+                            // i.e. stop reading new data
+                            break;  
+                        }
+
 
                         if (recv(i, rcvMsg, len, 0) < 0) {
                             cerr << "ERROR in receiving msg from client" << endl;
@@ -555,17 +573,26 @@ int rpcExecute(void) {
                             cerr << "ERROR in creating new thread" << endl;
                         }
 
-                        pthread_join(newThread, NULL); 
+                        
                     }
                 } // END handle data from client
             } // END got new incoming connection
         } // END looping through file descriptors
+
+        if (terminate_flag == 1) {
+            break; // break for(;;)
+        }
+
     } // END for(;;)--and you thought it would never end!
     
+    for (std::list<pthread_t>::iterator it = thread_list.begin(); it != thread_list.end(); it++) {
+        pthread_join(*it, NULL);    // TO_DO: use NULL or some other status?
+    }
+
     return 0;
 }
 
-
+// when received request from clients, do the execution here
 void* execute(void* arguments) {
     struct arg_struct *args = (struct arg_struct *)arguments;
 
@@ -579,8 +606,8 @@ void* execute(void* arguments) {
         messageLen = 100 + getTypeLength(args->argTypes) + getArgsLength(args->argTypes);  // name, argTypes, args
 
         char buffer[8 + messageLen];
-        memcpy(buffer, &messageLen, 4);
-        memcpy(buffer+4, &exeResult, 4);
+        memcpy(buffer, (char *) &messageLen, 4);
+        memcpy(buffer+4, (char *) &exeResult, 4);
         memcpy(buffer+8, args->name, 100); 
         memcpy(buffer+108, args->argTypes, getTypeLength(args->argTypes)); 
         memcpy(buffer+108+getTypeLength(args->argTypes), args->args, getArgsLength(args->argTypes));
@@ -592,9 +619,9 @@ void* execute(void* arguments) {
         messageLen = 4; 
 
         char buffer [12];
-        memcpy(buffer, &messageLen, 4);
-        memcpy(buffer+4, &exeResult, 4);
-        memcpy(buffer+8, &reasonCode, 4); 
+        memcpy(buffer, (char *) &messageLen, 4);
+        memcpy(buffer+4, (char *) &exeResult, 4);
+        memcpy(buffer+8, (char *) &reasonCode, 4); 
 
         ready_buffer = buffer;
     }
@@ -607,6 +634,36 @@ void* execute(void* arguments) {
    pthread_exit(NULL);
 }
 
+
+
+// Clients call rpcTerminate()
+int rpcTerminate(void) {
+    int sockfd; 
+
+    string Binder_id = getenv("BINDER_ADDRESS");
+    string Binder_port = getenv("BINDER_PORT"); 
+    // re-connect to Binder
+    if (connection(Binder_id.c_str(), Binder_port.c_str(), &sockfd) < 0) {
+        cout << "ERROR in connecting to Binder" << endl;
+        return -1;      // TO_DO:  need a better meaningful negative number
+    }
+
+    // send LOC_REQUEST message to Binder
+    int msgLen = 0;     // No following message after type
+    char buffer[8];
+    unsigned int requestType = TERMINATE;
+
+    memcpy(buffer, (char *) &msgLen, 4);                 // first 4 bytes stores length of msg
+    memcpy(buffer+4, (char *) &requestType, 4);          // next 4 bytes stores types info
+
+    // send LOC_REQUEST msg to Binder
+    if (send(sockfd, buffer, msgLen+8, 0) == -1) {
+        cerr << "ERROR in sending TERMINATE to Binder" << endl;
+        return TERMINATE_FAILURE;
+    } 
+    close(sockfd); 
+    return TERMINATE_SUCCESS;
+}
 /*
 // TODO: this main is just for testing and debugging
 int main () {
