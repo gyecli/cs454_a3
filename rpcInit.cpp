@@ -163,6 +163,7 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     char size_buff[4];
     valread = read(binderSocket, size_buff, 4);
 
+
     if(valread < 0)
     {
         error("ERROR read from socket, probably due to connection failure");
@@ -178,17 +179,21 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
         char type_buff[4];
         valread = read(binderSocket, type_buff, 4);
         uint32_t type = char42int(type_buff);
+
+        cout << "Testing: type value =  " << type  << " in rpcInit.cpp" << endl;      // TO_DO: for testing, delete later
+
         if(type == REGISTER_SUCCESS)
         {
-
+            cout << "Testing: REGISTER_SUCCESS in rpcInit.cpp" << endl;      // TO_DO: for testing, delete later
         }  
         else
         {
             //read error here
+            cout << "Testing: REGISTER_FAILURE in rpcInit.cpp" << endl;      // TO_DO: for testing, delete later
             return REGISTER_FAILURE; 
         }
     }
-
+    cout << "Testing: REGISTER_SUCCESS in rpcInit.cpp end" << endl;      // TO_DO: for testing, delete later
     //store to local DB
     serverDatabase.Add(name, argTypes, f);
 

@@ -181,7 +181,8 @@ int main()
                         int result = binderRegister(buff, *size); 
                         if(result == REGISTER_SUCCESS)
                         {
-                            //only return REGISTER_SUCCESS, nothing else                            
+                            //only return REGISTER_SUCCESS, nothing else    
+                            cout << "TESTING: REGISTER_SUCCESS in binder.cpp" << endl;  // TO_DO                        
                             uint32_t length = 0; 
                             char* sendChar = new char[8 + length];
                             char lengthChar[4]; 
