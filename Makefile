@@ -1,16 +1,19 @@
-all: binder server
+all: librpc.a
 
-my_rpc: my_rpc.cpp
-	g++ -Wall -c $^ -o rpc.o
+librpc.a: my_rpc.o rpcInit.o
+	ar rvs $@ $^
 
-rpcInit: rpc.o rpcInit.cpp
-	g++ -Wall -c $^ 
+test: librpc server.c server_functions.c server_function_skels.c
+	g++ -Wall -o test.run $^
+
+my_rpc.o: my_rpc.cpp
+	g++ -Wall -c $^ -o $@
+
+rpcInit.o: rpc.o rpcInit.cpp
+	g++ -Wall -c $^ -o $@
 
 rpc: rpc.o rpc.cpp
 	g++ -Wall $^
-
-#binder_lib: binder_lib.cpp
-#	g++ -Wall -c $^ -o binder_lib
 
 binder: binder.cpp
 	g++ -Wall $^ 
@@ -21,4 +24,4 @@ server: server_db.cpp
 
 .PHONY: clean
 clean:
-	rm -rf binder server *.o
+	rm -rf binder server *.o *.a
