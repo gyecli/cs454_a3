@@ -6,8 +6,8 @@ my_rpc: my_rpc.cpp
 rpcInit: my_rpc rpcInit.cpp
 	g++ -Wall -c $^ 
 
-rpc: my_rpc rpc.cpp
-	g++ -Wall $^
+rpc: rpc.cpp
+	g++ -Wall -c -lpthread $^ -o rpc
 
 #binder_lib: binder_lib.cpp
 #	g++ -Wall -c $^ -o binder_lib
