@@ -601,6 +601,7 @@ void* execute(void* arguments) {
             cerr << "send" << endl;
         }                      
    }
+   pthread_exit(NULL);
 }
 
 /*
