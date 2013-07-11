@@ -1,6 +1,7 @@
 #include "rpc.h"
 #include "server_function_skels.h"
 #include <stdio.h>
+using namespace std;
 
 int main(int argc, char *argv[]) {
   
@@ -53,45 +54,15 @@ int main(int argc, char *argv[]) {
   /* 
    * register server functions f0~f4
    */
-   
-   printf("f0\n");
-
   if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
     printf("success\n");
   else
     printf("failure\n");  
-  if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n");
-
-   printf("\n\nf1\n");
-
   if(rpcRegister("f1", argTypes1, *f1_Skel) == 0)
     printf("success\n");
   else
     printf("failure\n"); 
-  if(rpcRegister("f1", argTypes1, *f1_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n"); 
-
-
-  printf("\n\nf2\n");
   if(rpcRegister("f2", argTypes2, *f2_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n"); 
-  if(rpcRegister("f2", argTypes2, *f2_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n");
-
-
-
-
-  printf("\n\nf3\n");
-  if(rpcRegister("f3", argTypes3, *f3_Skel) == 0)
     printf("success\n");
   else
     printf("failure\n"); 
@@ -99,24 +70,14 @@ int main(int argc, char *argv[]) {
     printf("success\n");
   else
     printf("failure\n"); 
-
-   printf("\n\nf4\n");
-
-
-
   if(rpcRegister("f4", argTypes4, *f4_Skel) == 0)
     printf("success\n");
   else
     printf("failure\n"); 
-  if(rpcRegister("f4", argTypes4, *f4_Skel) == 0)
-    printf("success\n");
-  else
-    printf("failure\n"); 
-
 
 
   /* call rpcExecute */
-  //rpcExecute();
+  rpcExecute();
 
   /* return */
   return 0;
