@@ -24,10 +24,9 @@ serverDB: serverDB.cpp
 binder: binder.cpp prosig.o server_loc.o binderDB.o helper.o
 	g++ -Wall $^
 
-
-
 rpcInit: rpcInit.cpp
 	g++ -Wall -c $^ -o rpcInit.o
+
 
 rpc: rpc.o rpc.cpp
 	g++ -Wall $^
