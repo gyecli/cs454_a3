@@ -30,6 +30,8 @@ char rcv_name[SIZE_NAME];
 //char** rcv_args; 
 int reasonCode; 
 
+ServerDB serverDatabase;    // TODO: already in rpcInit.cpp 
+
 fd_set master;    // master file descriptor list (used in rpcExecute())
 
 // This is for pthread arguments passing (see rpcExecute() ) 
@@ -37,10 +39,12 @@ struct arg_struct {
     int sockfd;         // This is for send()
 
     char* name; 
-    int * argTypes;
+    int* argTypes;
     void** args; 
 };
 
+
+void* execute(void* arguments);  // Prototype
 //////////////////////////////////////////////////////////////////////////////////////////
 // figure out the size (in bytes）of argTypes array, including the "0" at the end; 
 int getTypeLength(int* argTypes) {
@@ -537,16 +541,16 @@ int rpcExecute(void) {
                         pack(newRcvMsg, new_argTypes, new_args); 
                         
                         struct arg_struct args;
-                        args->sockfd = i;
-                        args->name  = name;
-                        args->argTypes = argTypes; 
-                        args->args = args; 
+                        args.sockfd = i;
+                        args.name = name;
+                        args.argTypes = new_argTypes; 
+                        args.args = new_args; 
 
                         // TODO: still need the definition of search_skel()
                         pthread_t newThread; 
                         thread_list.push_back(newThread); 
                         if (pthread_create(&newThread, NULL, execute, (void*) &args)) {
-                            perror("ERROR in creating new thread\n");
+                            cerr << "ERROR in creating new thread" << endl;
                         }
 
                         pthread_join(newThread, NULL); 
@@ -563,20 +567,23 @@ int rpcExecute(void) {
 void* execute(void* arguments) {
     struct arg_struct *args = (struct arg_struct *)arguments;
 
-    skeleton skel_func = SearchSkeleton(args->name, args->argTypes);
-    int exeResult = exeskel_func(args->argTypes, args->args);
+    skeleton skel_func = serverDatabase.SearchSkeleton(args->name, args->argTypes);    // search in server local DB
+    int exeResult = skel_func(args->argTypes, args->args);
 
     int messageLen; 
+    char * ready_buffer;
 
     if (exeResult == EXECUTE_SUCCESS) {
-        messageLen = 100 + getTypeLength(argTypes) + getArgsLength(argTypes);  // name, argTypes, args
+        messageLen = 100 + getTypeLength(args->argTypes) + getArgsLength(args->argTypes);  // name, argTypes, args
 
         char buffer[8 + messageLen];
         memcpy(buffer, &messageLen, 4);
         memcpy(buffer+4, &exeResult, 4);
-        memcpy(buffer+8, name, 100); 
-        memcpy(buffer+108, argTypes, getTypeLength(argTypes)); 
-        memcpy(buffer+108+getTypeLength(argTypes), args, getArgsLength(argTypes));
+        memcpy(buffer+8, args->name, 100); 
+        memcpy(buffer+108, args->argTypes, getTypeLength(args->argTypes)); 
+        memcpy(buffer+108+getTypeLength(args->argTypes), args->args, getArgsLength(args->argTypes));
+    
+        ready_buffer = buffer;
     } else {
         // EXECUTE_FAILURE
         reasonCode = -2;    // TODO: is this a good reason code?
@@ -587,9 +594,11 @@ void* execute(void* arguments) {
         memcpy(buffer+4, &exeResult, 4);
         memcpy(buffer+8, &reasonCode, 4); 
 
+        ready_buffer = buffer;
     }
+    
     if (FD_ISSET(args->sockfd, &master)) {
-        if (send(args->sockfd, buffer, 8+messageLen, 0) == -1) {
+        if (send(args->sockfd, ready_buffer, 8+messageLen, 0) == -1) {
             cerr << "send" << endl;
         }                      
    }

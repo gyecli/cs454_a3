@@ -29,6 +29,7 @@ int clientSocket;
 int sockfd;
 char serverID[SIZE_IDENTIFIER];
 char serverPort[SIZE_PORTNO];
+
 ServerDB serverDatabase; 
 
 void ConnectBinder()
@@ -152,6 +153,8 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
 
     //store to local DB
     serverDatabase.Add(name, argTypes, f);
+
+    // TODO:  sorry, where is the registeration to Binder? (may be i missed it)
 
     return 0; 
 }
