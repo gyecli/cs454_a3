@@ -107,7 +107,7 @@ int getArgsLength(int* argTypes) {
 // 1.extract from buffer(message), and then put the data correspondly 
 //   into argTypes & args
 // 2.argTypes & args are NOT from rpcCall()
-void pack(char* buffer, int* argTypes, void** args) {
+void pack(char* buffer, int** argTypes, void*** args) {
     int num = 0;            // number of argTypes
     int argLen = 0; 
     char* it = buffer; 
@@ -116,21 +116,21 @@ void pack(char* buffer, int* argTypes, void** args) {
     for (char* it = buffer; atoi(it) != 0; it = it+4) {
         num++; 
     }
-    argTypes = new int[num+1];
+    *argTypes = new int[num+1];
 
     int i = 0; 
     it = buffer;        // it re-points to the start of buffer
     // Assign corresponding value into argTypes array
     for ( ; atoi(it) != 0; it = it+4) {
-        argTypes[i] = atoi(it); 
+        (*argTypes)[i] = atoi(it); 
         i++; 
     }
-    argTypes[i] = 0; 
+    (*argTypes)[i] = 0; 
     it += 4;                    // it now points to args in buffer
 
-    argLen = getArgsLength(argTypes); 
+    argLen = getArgsLength(*argTypes); 
 
-    args = new void* [num * sizeof(void *)];           // TODO: not sure here
+    (*args) = new void* [num * sizeof(void *)];           // TODO: not sure here
 
     int j = 0; 
 
@@ -141,10 +141,10 @@ void pack(char* buffer, int* argTypes, void** args) {
     double *temp5;
     float *temp6;
 
-    while(argTypes[j] != 0) {          // last element of argTypes is always ZERO
+    while((*argTypes)[j] != 0) {          // last element of argTypes is always ZERO
         // Type_mask:  (255 << 16)
-        unsigned int current_type = (argTypes[j] & Type_mask) >> 16; 
-        unsigned int num = ((argTypes[j]) & array_size_mask);  // # of current arg of current_type
+        unsigned int current_type = ((*argTypes)[j] & Type_mask) >> 16; 
+        unsigned int num = (((*argTypes)[j]) & array_size_mask);  // # of current arg of current_type
         
         int flag = 0; 
 
@@ -159,10 +159,10 @@ void pack(char* buffer, int* argTypes, void** args) {
                 temp1 = new char[num];
                 memcpy(temp1, it, 1*num);
                 if (flag == 1) {
-                    args[j] = (void *) &(*temp1); 
+                    (*args)[j] = (void *) &(*temp1); 
                 } else {
-                    args[j] = new char[num];
-                    args[j] = (void *) temp1; 
+                    (*args)[j] = new char[num];
+                    (*args)[j] = (void *) temp1; 
                 }
                 it += num; 
                 break; 
@@ -171,10 +171,10 @@ void pack(char* buffer, int* argTypes, void** args) {
                 temp2 = new short[num];
                 memcpy (temp2, it, 2*num); 
                 if(flag == 1) {
-                    args[j] = (void *) &(*temp2); 
+                    (*args)[j] = (void *) &(*temp2); 
                 } else {
-                    args[j] = new short[num];
-                    args[j] = (void *) temp2; 
+                    (*args)[j] = new short[num];
+                    (*args)[j] = (void *) temp2; 
                 }
                 it += 2*num;
                 break;
@@ -182,10 +182,10 @@ void pack(char* buffer, int* argTypes, void** args) {
                 // type: int
                 temp3 = new int[num];
                 if(flag == 1) {
-                    args[j] = (void *) &(*temp3); 
+                    (*args)[j] = (void *) &(*temp3); 
                 } else {
-                    args[j] = new int[num];
-                    args[j] = (void *) temp3; 
+                    (*args)[j] = new int[num];
+                    (*args)[j] = (void *) temp3; 
                 }
                 it += 4*num;
                 break;
@@ -193,10 +193,10 @@ void pack(char* buffer, int* argTypes, void** args) {
                 // type: long
                 temp4 = new long[num];
                 if(flag == 1) {
-                    args[j] = (void *) &(*temp4); 
+                    (*args)[j] = (void *) &(*temp4); 
                 } else {
-                    args[j] = new long[num];
-                    args[j] = (void *) temp4; 
+                    (*args)[j] = new long[num];
+                    (*args)[j] = (void *) temp4; 
                 }
                 it += 4*num;
                 break;
@@ -204,10 +204,10 @@ void pack(char* buffer, int* argTypes, void** args) {
                 // type: double
                 temp5 = new double[num];
                 if(flag == 1) {
-                    args[j] = (void *) &(*temp5); 
+                    (*args)[j] = (void *) &(*temp5); 
                 } else {
-                    args[j] = new double[num];
-                    args[j] = (void *) temp5; 
+                    (*args)[j] = new double[num];
+                    (*args)[j] = (void *) temp5; 
                 }
                 it += 8*num;
                 break; 
@@ -215,10 +215,10 @@ void pack(char* buffer, int* argTypes, void** args) {
                 // type: float
                 temp6 = new float[num];
                 if(flag == 1) {
-                    args[j] = (void *) &(*temp6); 
+                    (*args)[j] = (void *) &(*temp6); 
                 } else {
-                    args[j] = new float[num];
-                    args[j] = (void *) temp6; 
+                    (*args)[j] = new float[num];
+                    (*args)[j] = (void *) temp6; 
                 }
                 it += 4*num;
                 break;
@@ -232,7 +232,7 @@ void pack(char* buffer, int* argTypes, void** args) {
 // Helper function to create a connection 
 // return 0 on success, negative number on failure
 // Assuming "sockfd" is already assigned
-int connection(const char* hostname, const char* port, int sockfd) {
+int connection(const char* hostname, const char* port, int *sockfd) {
 	struct addrinfo hints, *servinfo, *p;
     int rv;
 
@@ -246,14 +246,14 @@ int connection(const char* hostname, const char* port, int sockfd) {
     }
     // loop through all the results and connect to the first we can
     for(p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+        if ((*sockfd = socket(p->ai_family, p->ai_socktype,
                 p->ai_protocol)) == -1) {
             cerr << "client: socket" << endl;
             continue;
         }
 
-        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-            close(sockfd);
+        if (connect(*sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(*sockfd);
             cerr << "ERROR in client connecting" << endl;
             continue;
         }
@@ -282,7 +282,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
     string Binder_id = getenv("BINDER_ADDRESS");
     string Binder_port = getenv("BINDER_PORT"); 
     // connect to Binder
-    if (connection(Binder_id.c_str(), Binder_port.c_str(), sockfd) < 0) {
+    if (connection(Binder_id.c_str(), Binder_port.c_str(), &sockfd) < 0) {
         cout << "ERROR in connecting to Binder" << endl;
         return -1;      // TO_DO:  need a better meaningful negative number
     }
@@ -329,7 +329,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
     		close(sockfd); 
 
             // Now connect to target server
-    		if (connection(server_id, server_port, sockfd) < 0) {
+    		if (connection(server_id, server_port, &sockfd) < 0) {
                 cout << "ERROR in connecting to server" << endl;
                 return -1; 
             }
@@ -374,7 +374,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
                     //
                     int *new_argTypes;
                     void** new_args; 
-                    pack(rcv_buffer2, new_argTypes, new_args); 
+                    pack(rcv_buffer2, &new_argTypes, &new_args); 
 
                     memcpy(args, new_args, getArgsLength(argTypes));
 
@@ -386,6 +386,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
                     return RPCCALL_FAILURE;           // TO_DO: should return EXECUTE_FAILURE??
                 } else {
                     cout << "Should not come here 1" << endl;
+                    return -10;             // TO_DO: haven't been determined
                 }
             }
     	} else if (type == LOC_FAILURE) {
@@ -393,6 +394,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
             return RPCCALL_FAILURE;         // TO_DO: should return EXECUTE_FAILURE??
     	} else {
             cout << "Shoudl not come here 2" << endl; 
+            return -10;             // TO_DO: haven't been determined
         }
     }
 }
@@ -420,17 +422,14 @@ int rpcExecute(void) {
     int newfd;        // newly accept()ed socket descriptor
     struct sockaddr_storage remoteaddr; // client address
     socklen_t addrlen;
-    char hostName[SIZE_IDENTIFIER];   // host name of local machine
+    //char hostName[SIZE_IDENTIFIER];   // host name of local machine
 
-    char buf[8];    // buffer for first 8 bytes
     int nbytes;
 
     struct sockaddr_in addr;
     int s_len;
 
     int i;
-
-    struct addrinfo hints, *ai, *p;
 
     FD_ZERO(&master);    // clear the master and temp sets
     FD_ZERO(&read_fds);
@@ -523,7 +522,7 @@ int rpcExecute(void) {
                         memcpy(rcv_type, buf+4, 4); 
 
                         int len = atoi(rcv_len);  
-                        int type = atoi(rcv_type);
+                        //int type = atoi(rcv_type);
                         char rcvMsg[len];
 
                         if (recv(i, rcvMsg, len, 0) < 0) {
@@ -538,7 +537,7 @@ int rpcExecute(void) {
                         void** new_args; 
 
                         // pack() will put info of newRcvMsg into argTypes & args respectively
-                        pack(newRcvMsg, new_argTypes, new_args); 
+                        pack(newRcvMsg, &new_argTypes, &new_args);  // TO_DO: & OR *
                         
                         struct arg_struct args;
                         args.sockfd = i;
@@ -596,19 +595,18 @@ void* execute(void* arguments) {
 
         ready_buffer = buffer;
     }
-    
+
     if (FD_ISSET(args->sockfd, &master)) {
         if (send(args->sockfd, ready_buffer, 8+messageLen, 0) == -1) {
             cerr << "send" << endl;
         }                      
    }
-
+   pthread_exit(NULL);
 }
 
-
+/*
 // TODO: this main is just for testing and debugging
 int main () {
-    /* prepare the arguments for f0 */
   int a0 = 5;
   int b0 = 10;
   int count0 = 3;
@@ -627,9 +625,7 @@ int main () {
   args0[2] = (void *)&b0;
 
 
-    /* rpcCalls */
   int s0 = rpcCall("f0", argTypes0, args0);
-  /* test the return f0 */
   cout << "Expected return of f0 is " << a0+b0 << endl;
   if (s0 >= 0) { 
     cout << "Actual return of f0 is: " << *((int *)(args0[0])) << endl; 
@@ -638,4 +634,4 @@ int main () {
     cout << "ERROR: " << s0 << endl; 
   }
 
-}
+}*/
