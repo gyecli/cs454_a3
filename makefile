@@ -1,12 +1,12 @@
 all: binder server
 
 my_rpc: my_rpc.cpp
-	g++ -Wall -c $^ -o my_rpc
+	g++ -Wall -c $^ -o rpc.o
 
-rpcInit: my_rpc rpcInit.cpp
+rpcInit: rpc.o rpcInit.cpp
 	g++ -Wall -c $^ 
 
-rpc: my_rpc rpc.cpp
+rpc: rpc.o rpc.cpp
 	g++ -Wall $^
 
 #binder_lib: binder_lib.cpp
