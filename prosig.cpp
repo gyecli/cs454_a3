@@ -1,6 +1,7 @@
 #include "prosig.h"
 #include "const.h"
 #include <string>
+#include <iostream>
 
 Prosig::Prosig(std::string name, int argNum, int* argTypes):name(name),argNum(argNum), argTypes(argTypes)
 {
@@ -8,7 +9,9 @@ Prosig::Prosig(std::string name, int argNum, int* argTypes):name(name),argNum(ar
 
 Prosig::~Prosig()
 {
-    delete [] argTypes;
+    //TODO: I can't delete it, says it's not allocated, I don't know why
+    //std::cout<<"delete"<<std::endl;
+    //delete [] argTypes;
 }
 
 bool Prosig::operator==(const Prosig &other) const 
