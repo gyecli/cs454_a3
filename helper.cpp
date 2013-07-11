@@ -2,6 +2,7 @@
 
 using namespace std; 
 
+/*
 uint32_t char42int(char* input)
 {
     uint32_t result;
@@ -20,7 +21,7 @@ void int2char4(uint32_t n, char* result)
     result[2] = (n >> 8) & 0xFF;
     result[3] = n & 0xFF;
 }
-
+*/
 void error(string reason)
 {
     //#ifdef _DEBUG
@@ -31,10 +32,11 @@ void error(string reason)
 
 Prosig MakePro(char* name, int* argTypes)
 {
-    Prosig function(string(name), getTypeLength(argTypes), argTypes); 
+    Prosig function(string(name), getArgNum(argTypes), argTypes); 
     return function; 
 }
 
+//returns how many bytes argType should have
 int getTypeLength(int* argTypes) 
 {
     int size = 0;
@@ -44,4 +46,15 @@ int getTypeLength(int* argTypes)
         it = it+1;
     }
     return (size +4);
+}
+
+int getArgNum(int* argTypes)
+{
+    int num = 0;
+    int* it = argTypes;
+    while (*it != 0) {
+        ++num;
+        it = it+1;
+    }
+    return num;
 }

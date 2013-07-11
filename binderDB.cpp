@@ -2,6 +2,7 @@
 #include "server_loc.h"
 #include "prosig.h"
 #include "const.h"
+#include <iostream>
 
 using namespace std;
 
@@ -13,7 +14,6 @@ int BinderDB::Register(Prosig function, ServerLoc ser)
         //first time for this server to register this function 
         database.push_back(ProLoc(function, ser));
         return REGISTER_SUCCESS; 
-
     }
     else
     {  
@@ -22,17 +22,29 @@ int BinderDB::Register(Prosig function, ServerLoc ser)
     }
 }
 
+using namespace std; 
+
 //to find the position in the list
 //where we have the specific function & server info
 list<ProLoc>::iterator BinderDB::SearchHelper(Prosig function, ServerLoc ser)
 {
+    int i=0; 
+    cout<<"size:"<<database.size()<<endl; 
     for(list<ProLoc>::iterator it=database.begin(); it!=database.end(); ++it)
     {
+        cout<<i<<endl;
+        ++i;
+
+        cout<<"function:"<<function.name<<" "<<function.argNum<<endl;
+        cout<<"current:"<<it->first.name<<" "<<it->first.argNum<<endl;
+
         if(function == it->first && ser == it->second)
         {
+            std::cout<<"found"<<std::endl; 
             return it; 
         }
     }
+    std::cout<<"not found"<<std::endl<<endl; 
     return database.end(); 
 }
 
