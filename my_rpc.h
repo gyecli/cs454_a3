@@ -8,14 +8,18 @@
 #define REGISTER 1
 
 #define LOC_REQUEST 2
-#define LOC_SUCCESS 0
-#define LOC_FAILURE -1
-
 #define EXECUTE 4
-#define EXECUTE_SUCCESS 0
-#define EXECUTE_FAILURE -2
 
+
+//success
+#define LOC_SUCCESS 0
+#define EXECUTE_SUCCESS 0
 #define RPCCALL_SUCCESS 0
+
+//failure
+#define LOC_FAILURE -1
+#define REGISTER_FAILURE -1
+#define EXECUTE_FAILURE -2
 #define RPCCALL_FAILURE -3
 
 //masks for extracting parameters 
@@ -66,4 +70,8 @@ public:
 //helper functions
 int getTypeLength(int* argTypes);
 Prosig MakePro(char* name, int* argTypes); //TODO, to implement 
+void error(std::string reason);
+uint32_t char42int(char* input);
+void int2char4(uint32_t n, char* result);
+
 

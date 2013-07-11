@@ -127,8 +127,7 @@ int rpcInit()
 	GetSelfID();     
     ConnectBinder(); 
 
-    cout<<"connection!"<<endl;
-
+    //TODO: handle error cases
     return 0; 
 }
 
@@ -136,6 +135,7 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
 {
     //firstly send to binder 
     char* send; 
+    int valread;
     int argSize = getTypeLength(argTypes);
     int totalSize = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME + argSize; 
     send = new char[totalSize + 8];
@@ -150,9 +150,38 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
 
     write(binderSocket, (void*)send, totalSize+8);
 
+    //TODO: error handling, eg: can't connect to binder
+    //TODO: not sure if 'read' immediately after 'write' works
+    char size_buff[4];
+    valread = read(binderSocket, size_buff, 4);
+    if(valread < 0)
+    {
+        error("ERROR read from socket, probably due to connection failure");
+        return REGISTER_FAILURE; 
+    }
+    else if(valread == 0)
+    {
+        return REGISTER_FAILURE; 
+    }
+    else
+    {
+        uint32_t size = char42int(size_buff); 
+        char type_buff[4];
+        valread = read(binderSocket, type_buff, 4);
+        uint32_t type = char42int(type_buff);
+        if(type == REGISTER_SUCCESS)
+        {
+
+        }  
+        else
+        {
+            //read error here
+            return REGISTER_FAILURE; 
+        }
+    }
+
     //store to local DB
     serverDatabase.Add(name, argTypes, f);
 
-    return 0; 
+    return REGISTER_SUCCESS; 
 }
-

@@ -18,7 +18,8 @@ using namespace std;
 
 //failure 
 #define LOC_FAILURE -1 
-#define REGISTER_FAILURE -2  
+#define REGISTER_FAILURE -2
+#define REGISTER_DUPLICATE -3
 
 //size
 #define SIZE_IDENTIFIER 128
@@ -26,8 +27,6 @@ using namespace std;
 #define SIZE_NAME 100
 
 #define array_size_mask ((1<<17)-1)  
-
-
 
 //class Prosig; 
 class Server; 
@@ -160,7 +159,6 @@ public:
 
     int Register(Prosig function, Server ser);
     int SearchServer(Prosig function, Server *ser);
-
 };
 
 //to find the position in the list
@@ -184,12 +182,14 @@ int BinderDB::Register(Prosig function, Server ser)
     {
         //first time for this server to register this function 
         database.push_back(ProLoc(function, ser));
-    }
-    //else
-        //server already registed this function before
-        //no need to do else 
+        return REGISTER_SUCCESS; 
 
-    return REGISTER_SUCCESS; 
+    }
+    else
+    {  
+        //server already registed this function before
+        return REGISTER_DUPLICATE; 
+    }
 }
 
 //search for server given the function prototype 

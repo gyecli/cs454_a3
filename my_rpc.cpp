@@ -47,8 +47,9 @@ skeleton ServerDB::SearchSkeleton(char* name, int* argTypes)
 ////////////////////
 //heper functoin 
 
-//////////////////////////////////////////////////////////////////////////////////////////
-// figure out the size (in bytes）of argTypes array, including the "0" at the end; 
+//////////////////////////
+// figure out the size (in bytes）of argTypes array, 
+//including the "0" at the end; 
 int getTypeLength(int* argTypes) {
     int size = 0;
     int* it = argTypes;
@@ -64,3 +65,30 @@ Prosig MakePro(char* name, int* argTypes)
     Prosig function(string(name), getTypeLength(argTypes), argTypes); 
     return function; 
 }
+
+void error(string reason)
+{
+    #ifdef _DEBUG
+        cout<<reason<<endl; 
+    #endif
+}
+
+uint32_t char42int(char* input)
+{
+    uint32_t result;
+    result = (uint32_t)input[3];
+    result += ((uint32_t)input[2])<<8; 
+    result += ((uint32_t)input[1])<<16;
+    result += ((uint32_t)input[0])<<24;
+
+    return result;
+}
+
+void int2char4(uint32_t n, char* result)
+{
+    result[0] = (n >> 24) & 0xFF;
+    result[1] = (n >> 16) & 0xFF;
+    result[2] = (n >> 8) & 0xFF;
+    result[3] = n & 0xFF;
+}
+
