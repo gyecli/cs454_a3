@@ -50,16 +50,15 @@ int binderRegister(char* received, int size)
     //return 0;   // TODO: havn't figured out return type 
 }
 
-int loc_Request(char* received, int size, ServerLoc *ser)
+int Loc_Request(char* received, int size, ServerLoc *ser)
 {
     char name[SIZE_NAME];
-    char* argTypes = new char[size - SIZE_IDENTIFIER];
-
-    memcpy(name, received, SIZE_IDENTIFIER);
-    memcpy(argTypes, received, size - SIZE_IDENTIFIER);
-
+    char* argTypes = new char[size - SIZE_NAME];
+    memcpy(name, received, SIZE_NAME);
+    memcpy(argTypes, received + SIZE_NAME, size - SIZE_NAME);
     Prosig function = MakePro(name, (int*)argTypes);
     int result = db.SearchServer(function, ser);
+
     return result; 
 }
 
@@ -217,11 +216,7 @@ int main()
                     {
                         cout<<"received a loc_Request"<<endl;
                         ServerLoc ser; 
-                        cout<<"size:" << *size << endl; 
-                        
-                        int result = loc_Request(buff, *size, &ser);
-
-                        cout<<"after search"<<endl; 
+                        int result = Loc_Request(buff, *size, &ser);
 
                         if(result == LOC_SUCCESS)
                         {
@@ -229,12 +224,9 @@ int main()
 
                             int length = SIZE_IDENTIFIER + SIZE_PORTNO; 
                             char* sendChar = new char[8 + length];
-                            char lengthChar[4]; 
-                            char resultChar[4]; 
-                            //int2char4(length, lengthChar);
-                            //int2char4(result, resultChar);
+
                             memcpy(sendChar, (char*)&length, 4); 
-                            memcpy(sendChar + 4, (char*)result, 4); 
+                            memcpy(sendChar + 4, (char*)&result, 4);
                             memcpy(sendChar + 8, ser.identifier, SIZE_IDENTIFIER);
                             memcpy(sendChar + 8 + SIZE_IDENTIFIER, ser.portno, SIZE_PORTNO); 
 

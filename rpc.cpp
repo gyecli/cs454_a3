@@ -410,6 +410,8 @@ int rpcCall(char* name, int* argTypes, void** args) {
 
     // send LOC_REQUEST message to Binder
     int msgLen = (SIZE_NAME + getTypeLength(argTypes));  // name, argTypes
+    cout<<"length:"<<msgLen;
+
     char send_buff[msgLen + 8];
     unsigned int requestType = LOC_REQUEST;
 
@@ -422,10 +424,8 @@ int rpcCall(char* name, int* argTypes, void** args) {
     if (send(sockfd, send_buff, msgLen + 8, 0) == -1) {
         cerr << "ERROR in sending LOC_REQUEST to Binder" << endl;
     } 
-    cout<<"after send LOC_REQUEST"<<endl;
 
     // wait for reply msg from Binder
-
     valread = read(binderSocket, size_buff, 4);
     if(valread < 0)
     {
@@ -443,12 +443,10 @@ int rpcCall(char* name, int* argTypes, void** args) {
         valread = read(binderSocket, type_buff, 4);
         uint32_t *type = (uint32_t*)type_buff;
 
-
     	if (*type == LOC_SUCCESS) 
         {                 
     		// now extract server name (128 bytes) and server port (2 bytes)
             cout << "LOC_SUCCESS in rpcCall()" << endl;
-
             buff = new char[*size+10]; 
             valread = read(sockfd, buff, *size+10);
             if(valread < 0)
@@ -462,8 +460,8 @@ int rpcCall(char* name, int* argTypes, void** args) {
     		memcpy(server_id, buff, SIZE_IDENTIFIER); 
     		memcpy(server_port, buff+SIZE_IDENTIFIER, SIZE_PORTNO); 
 
-            cout<<"id:"<<string(server_id)<<endl;
-            cout<<"port:" << string(server_port) <<endl;
+            //cout<<"id:"<<string(server_id)<<endl;
+            //cout<<"port:" << string(server_port) <<endl;
 
     		close(sockfd);    // close socket between client and binder
 
