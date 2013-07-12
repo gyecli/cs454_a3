@@ -9,8 +9,10 @@ ServerLoc::ServerLoc()
         //portno = new char[portno]; 
 }
 
-ServerLoc::ServerLoc(char* identifier, char* portno): identifier(identifier),portno(portno)
+ServerLoc::ServerLoc(char* identifier, char* portno)
 {
+    strcpy(this->identifier, identifier); 
+    strcpy(this->identifier, identifier); 
 }
 
 bool ServerLoc::operator == (const ServerLoc &other) const

@@ -15,12 +15,15 @@
 //failure 
 #define LOC_FAILURE -1 
 #define REGISTER_FAILURE -2
-#define REGISTER_DUPLICATE -3
 #define EXECUTE_FAILURE -4
 #define RPCCALL_FAILURE -5
 #define TERMINATE_FAILURE -6	// added by Tim
+#define UNKNOW_REQUEST -7
 #define UNKNOWN_FAILURE -100
 
+//warning
+#define REGISTER_DUPLICATE 100
+#define SERVER_UNAVAILABLE 101
 //size
 #define SIZE_IDENTIFIER 128
 #define SIZE_PORTNO 2
