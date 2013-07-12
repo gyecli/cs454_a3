@@ -22,7 +22,7 @@
 
 //size
 #define SIZE_IDENTIFIER 128
-#define SIZE_PORTNO 4
+#define SIZE_PORTNO 2
 #define SIZE_NAME 100
 
 //masks for extracting parameters 

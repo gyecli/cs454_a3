@@ -1,43 +1,30 @@
-all: librpc.a
+requirements: librpc.a binder
 
-librpc.a: rpc.o server_loc.o prosig.o helper.o serverDB.o
-	ar rvs $@ $^
+test: test_server.run test_client.run binder
 
-testserver: librpc.a my_server.c server_functions.c server_function_skels.c
-	g++ -Wall -o testserver.run $^
+librpc.a: rpc.cpp server_loc.cpp prosig.cpp helper.cpp serverDB.cpp
+	g++ -Wall -c -o rpc.o rpc.cpp
+	g++ -Wall -c -o prosig.o prosig.cpp
+	g++ -Wall -c -o helper.o helper.cpp
+	g++ -Wall -c -o server_loc.o server_loc.cpp
+	g++ -Wall -c -o serverDB.o serverDB.cpp
+	g++ -Wall -c -o binderDB.o binderDB.cpp
+	ar rvs librpc.a rpc.o prosig.o helper.o server_loc.o serverDB.o binderDB.o
 
-testclient: librpc.a client1.c
-	g++ -Wall -o testclient.run $^
+binder: librpc.a binder.cpp
+	g++ -Wall -L. binder.cpp -lrpc -o binder
 
-prosig: prosig.cpp
-	g++ -Wall -c -o prosig.o $^
+test_server.run: librpc.a my_test/my_server.c my_test/my_server_functions.c my_test/my_server_function_skels.c
+	g++ -Wall -c -o server_functions.o my_test/my_server_functions.c
+	g++ -Wall -c -o server_function_skels.o my_test/my_server_function_skels.c
+	g++ -Wall -c -o server.o my_test/my_server.c
+	g++ -Wall -L. server_functions.o server_function_skels.o server.o -lrpc -o $@
 
-server_loc: server_loc.cpp
-	g++ -Wall -c -o server_loc.o $^
-
-binderDB: binderDB.cpp
-	g++ -Wall -c -o binderDB.o $^
-
-helper: helper.cpp
-	g++ -Wall -c -o helper.o $^
-
-serverDB: serverDB.cpp
-	g++ -Wall -c -o binderDB.o $^
-
-binder: binder.cpp prosig.o server_loc.o binderDB.o helper.o
-	g++ -Wall $^ -o binder
-
-rpcInit: rpcInit.cpp
-	g++ -Wall -c $^ -o rpcInit.o
-
-rpc: rpc.cpp
-	g++ -Wall -lpthread -c $^ -o rpc.o
- 
-
-server: server_db.cpp
-	g++ -Wall -c $^ -o server
+test_client.run: librpc.a my_test/my_client.c
+	g++ -Wall -c -o client.o my_test/my_client.c
+	g++ -Wall -L. client.o -lrpc -o $@
 
 
 .PHONY: clean
 clean:
-	rm -rf binder server *.o *.a
+	rm -rf *.a *.o *.run binder server client
