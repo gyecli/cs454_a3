@@ -114,6 +114,14 @@ int main(int argc, char *argv[]) {
     printf("failure\n"); 
 
 
+  if(rpcRegister("f4", argTypes4, *f4_Skel) == 0)
+    printf("success\n");
+  else
+    printf("failure\n"); 
+  if(rpcRegister("f4", argTypes4, *f4_Skel) == 0)
+    printf("success\n");
+  else
+    printf("failure\n"); 
 
   /* call rpcExecute */
   //rpcExecute();

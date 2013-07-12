@@ -14,14 +14,14 @@ librpc.a: rpc.cpp server_loc.cpp prosig.cpp helper.cpp serverDB.cpp
 binder: librpc.a binder.cpp
 	g++ -Wall -L. binder.cpp -lrpc -o binder
 
-test_server.run: librpc.a test/my_server.c test/my_server_functions.c test/my_server_function_skels.c
-	g++ -Wall -c -o server_functions.o test/my_server_functions.c
-	g++ -Wall -c -o server_function_skels.o test/my_server_function_skels.c
-	g++ -Wall -c -o server.o test/my_server.c
+test_server.run: librpc.a my_test/my_server.c my_test/my_server_functions.c my_test/my_server_function_skels.c
+	g++ -Wall -c -o server_functions.o my_test/my_server_functions.c
+	g++ -Wall -c -o server_function_skels.o my_test/my_server_function_skels.c
+	g++ -Wall -c -o server.o my_test/my_server.c
 	g++ -Wall -L. server_functions.o server_function_skels.o server.o -lrpc -o $@
 
-test_client.run: librpc.a test/my_client.c
-	g++ -Wall -c -o client.o test/my_client.c
+test_client.run: librpc.a my_test/my_client.c
+	g++ -Wall -c -o client.o my_test/my_client.c
 	g++ -Wall -L. client.o -lrpc -o $@
 
 
