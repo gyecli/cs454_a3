@@ -192,42 +192,37 @@ void pack(char* buffer, int** argTypes, void*** args) {
 // Helper function to create a connection 
 // return 0 on success, negative number on failure
 // Assuming "sockfd" is already assigned
-int connection(const char* hostname, const char* port, int *sockfd) {
-	struct addrinfo hints, *servinfo, *p;
-    int rv;
+int connectServer(const char* hostAddr, const char* portno, int *socketnum) 
+{
 
-	memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-        
-    if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0) {
-        cerr << "getaddrinfo: " << gai_strerror(rv) << endl;
-        return -1; 
-    }
-    // loop through all the results and connect to the first we can
-    for(p = servinfo; p != NULL; p = p->ai_next) {
-        if ((*sockfd = socket(p->ai_family, p->ai_socktype,
-                p->ai_protocol)) == -1) {
-            cerr << "client: socket" << endl;
-            continue;
-        }
+    struct sockaddr_in addr;
+    struct hostent *he;
 
-        if (connect(*sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-            close(*sockfd);
-            cerr << "ERROR in client connecting" << endl;
-            continue;
-        }
-        break;
+    if ( (he = gethostbyname(hostAddr) ) == NULL ) 
+    {
+        perror("ERROR gethostbyname");
+        exit(-1);
     }
 
-    if (p == NULL) {
-        cerr <<  "ERROR: client failed to connect" << endl;
-        return -2;
+    /* copy the network address to sockaddr_in structure */
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(atoi(portno));
+    memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
+    *socketnum = socket(PF_INET, SOCK_STREAM, 0);
+
+    if(*socketnum == 0)
+    {
+        perror("ERROR socket");
+        exit(-1);
     }
 
-    freeaddrinfo(servinfo); // all done with this structure
+    if(connect(*socketnum, (struct sockaddr *)&addr, sizeof(addr))<0)
+    {
+        perror("ERROR connect");
+        exit(-1);
+    }
 
-    return 0; 
+    return 0; //TO-DO change return value, to indicate error
 }
 
 
@@ -403,70 +398,75 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
 int rpcCall(char* name, int* argTypes, void** args) { 
 
     //*************************************************
-    // check whether arguments are valid
+    // TO-DO check whether arguments are valid
     // Note: right now no need to check
     //*************************************************
-	/*
-
-    string Binder_id = getenv("BINDER_ADDRESS");
-    string Binder_port = getenv("BINDER_PORT"); 
-    // connect to Binder
-    if (connection(Binder_id.c_str(), Binder_port.c_str(), &sockfd) < 0) {
-        cout << "ERROR in connecting to Binder" << endl;
-        return -1;      // TO_DO:  need a better meaningful negative number
-    }
-*/
-
+    char* buff; 
     int sockfd; 
+    int valread;
+    char size_buff[4];
+    char type_buff[4];
     ConnectBinder(&sockfd);
 
     // send LOC_REQUEST message to Binder
     int msgLen = (SIZE_NAME + getTypeLength(argTypes));  // name, argTypes
-    char buffer[msgLen + 8];
+    cout<<"length:"<<msgLen;
+
+    char send_buff[msgLen + 8];
     unsigned int requestType = LOC_REQUEST;
 
-    memcpy(buffer, (char *) &msgLen, 4);                 // first 4 bytes stores length of msg
-    memcpy(buffer+4, (char *) &requestType, 4);          // next 4 bytes stores types info
-    memcpy(buffer+8, name, SIZE_NAME);                // and then msg = name + argTypes
-    memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
+    memcpy(send_buff, (char *) &msgLen, 4);                 // first 4 bytes stores length of msg
+    memcpy(send_buff + 4, (char *) &requestType, 4);          // next 4 bytes stores types info
+    memcpy(send_buff + 8, name, SIZE_NAME);                // and then msg = name + argTypes
+    memcpy(send_buff + 8 + SIZE_NAME, argTypes, getTypeLength(argTypes)); 
 
     // send LOC_REQUEST msg to Binder
-    if (send(sockfd, buffer, msgLen+8, 0) == -1) {
+    if (send(sockfd, send_buff, msgLen + 8, 0) == -1) {
         cerr << "ERROR in sending LOC_REQUEST to Binder" << endl;
     } 
-    cout<<"after send LOC_REQUEST"<<endl;
 
     // wait for reply msg from Binder
-    char rcv_buffer[8]; 
-    int numbytes = recv(sockfd, rcv_buffer, 8, 0);
-    if (numbytes < 0) {
-    	cerr << "ERROR in recving LOC reply from Binder" << endl;
-    	exit(1); 
-    } else {
-        // extract first 8 bytes from Binder
-    	char rcv_len[4];
-    	char rcv_type[4]; 
-    	memcpy(rcv_len, rcv_buffer, 4); 
-    	memcpy(rcv_type, rcv_buffer+4, 4); 
+    valread = read(binderSocket, size_buff, 4);
+    if(valread < 0)
+    {
+        error("ERROR read from socket, probably due to connection failure");
+        return LOC_FAILURE; 
+    }
+    else if(valread == 0)
+    {
+        //TODO figure out the error case
+        return LOC_FAILURE; 
+    }
+    else
+    {
+        uint32_t *size = (uint32_t*)size_buff; 
+        valread = read(binderSocket, type_buff, 4);
+        uint32_t *type = (uint32_t*)type_buff;
 
-        int len = atoi(rcv_len);
-        int type = atoi(rcv_type);
-
-    	if (type == LOC_SUCCESS) {                 
+    	if (*type == LOC_SUCCESS) 
+        {                 
     		// now extract server name (128 bytes) and server port (2 bytes)
             cout << "LOC_SUCCESS in rpcCall()" << endl;
+            buff = new char[*size+10]; 
+            valread = read(sockfd, buff, *size+10);
+            if(valread < 0)
+            {
+                error("ERROR read from socket, probably due to connection failure");
+                return LOC_FAILURE; 
+            }
 
-    		char rcv_buffer[SIZE_IDENTIFIER + SIZE_PORTNO];
-    		recv(sockfd, rcv_buffer, (SIZE_IDENTIFIER + SIZE_PORTNO), 0);
     		char server_id[SIZE_IDENTIFIER];
     		char server_port[SIZE_PORTNO]; 
-    		memcpy(server_id, rcv_buffer, SIZE_IDENTIFIER); 
-    		memcpy(server_port, rcv_buffer+SIZE_IDENTIFIER, SIZE_PORTNO); 
+    		memcpy(server_id, buff, SIZE_IDENTIFIER); 
+    		memcpy(server_port, buff+SIZE_IDENTIFIER, SIZE_PORTNO); 
+
+            //cout<<"id:"<<string(server_id)<<endl;
+            //cout<<"port:" << string(server_port) <<endl;
 
     		close(sockfd);    // close socket between client and binder
 
             // Now connect to target server
-    		if (connection(server_id, server_port, &sockfd) < 0) {
+    		if (connectServer(server_id, server_port, &sockfd) < 0) {
                 cout << "ERROR in connecting to server" << endl;
                 return -1; 
             }
@@ -481,6 +481,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
     		memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
             memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), args, getArgsLength(argTypes));
 
+/*
             // send EXECUTE request to server
     		if (send(sockfd, buffer, messageLen+8, 0) == -1) {
         		cout << "ERROR in sending LOC_REQUEST to Binder" << endl;
@@ -528,10 +529,15 @@ int rpcCall(char* name, int* argTypes, void** args) {
                     return -10;             // TO_DO: haven't been determined
                 }
             }
-    	} else if (type == LOC_FAILURE) {
+*/
+    	} 
+        else if (*type == LOC_FAILURE) 
+        {
             cout << "LOC FAILURE" << endl;
             return RPCCALL_FAILURE;         // TO_DO: should return EXECUTE_FAILURE??
-    	} else {
+    	} 
+        else 
+        {
             cout << "Shoudl not come here 2" << endl; 
             return -10;             // TO_DO: haven't been determined
         }
@@ -780,7 +786,7 @@ int rpcTerminate(void) {
     string Binder_id = getenv("BINDER_ADDRESS");
     string Binder_port = getenv("BINDER_PORT"); 
     // re-connect to Binder
-    if (connection(Binder_id.c_str(), Binder_port.c_str(), &sockfd) < 0) {
+    if (connectServer(Binder_id.c_str(), Binder_port.c_str(), &sockfd) < 0) {
         cout << "ERROR in connecting to Binder" << endl;
         return -1;      // TO_DO:  need a better meaningful negative number
     }
