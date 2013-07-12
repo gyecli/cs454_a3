@@ -401,11 +401,13 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
 //////////////////////////////////////////////////////////////////////////////////////////
 // rpcCall 
 int rpcCall(char* name, int* argTypes, void** args) { 
+
     //*************************************************
     // check whether arguments are valid
     // Note: right now no need to check
     //*************************************************
-	int sockfd; 
+	/*
+    int sockfd; 
 
     string Binder_id = getenv("BINDER_ADDRESS");
     string Binder_port = getenv("BINDER_PORT"); 
@@ -414,6 +416,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
         cout << "ERROR in connecting to Binder" << endl;
         return -1;      // TO_DO:  need a better meaningful negative number
     }
+*/
 
     // send LOC_REQUEST message to Binder
     int msgLen = (SIZE_NAME + getTypeLength(argTypes));  // name, argTypes
@@ -426,12 +429,14 @@ int rpcCall(char* name, int* argTypes, void** args) {
     memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
 
     // send LOC_REQUEST msg to Binder
-    if (send(sockfd, buffer, msgLen+8, 0) == -1) {
+    if (send(binderSocket, buffer, msgLen+8, 0) == -1) {
         cerr << "ERROR in sending LOC_REQUEST to Binder" << endl;
     } 
+    cout<<"after send LOC_REQUEST"<<endl;
+
     // wait for reply msg from Binder
     char rcv_buffer[8]; 
-    int numbytes = recv(sockfd, rcv_buffer, 8, 0);
+    int numbytes = recv(binderSocket, rcv_buffer, 8, 0);
     if (numbytes < 0) {
     	cerr << "ERROR in recving LOC reply from Binder" << endl;
     	exit(1); 
