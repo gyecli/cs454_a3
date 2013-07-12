@@ -184,7 +184,7 @@ int main()
                         {
                             //only return REGISTER_SUCCESS, nothing else    
                             //cout << "TESTING: REGISTER_SUCCESS in binder.cpp" << endl;  // TO_DO                        
-                            uint32_t length = 0; 
+                            uint32_t length = 4; 
                             char* sendChar = new char[8 + length];
                             char lengthChar[4]; 
                             char resultChar[4]; 
@@ -192,7 +192,7 @@ int main()
                             //int2char4(result, resultChar); 
                             memcpy(sendChar, (char*)&length, 4); 
                             memcpy(sendChar, (char*)&result, 4);
-                            send(sd, sendChar, 8, 0); 
+                            send(sd, sendChar, 8 + length, 0); 
                         }
                         else if(result != REGISTER_SUCCESS)
                         {
