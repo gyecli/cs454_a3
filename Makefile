@@ -3,7 +3,7 @@ all: librpc.a
 librpc.a: rpc.o server_loc.o prosig.o helper.o serverDB.o
 	ar rvs $@ $^
 
-testserver: librpc.a server.c server_functions.c server_function_skels.c
+testserver: librpc.a my_server.c server_functions.c server_function_skels.c
 	g++ -Wall -o testserver.run $^
 
 testclient: librpc.a client1.c
@@ -29,7 +29,6 @@ binder: binder.cpp prosig.o server_loc.o binderDB.o helper.o
 
 rpcInit: rpcInit.cpp
 	g++ -Wall -c $^ -o rpcInit.o
-
 
 rpc: rpc.cpp
 	g++ -Wall -lpthread -c $^ -o rpc.o

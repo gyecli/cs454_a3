@@ -18,7 +18,7 @@
 #include "binderDB.h"
 #include "helper.h"
 
-#define MAX_CLIENTS 10
+#define MAX_CLIENTS 20
 
 using namespace std;
 
@@ -169,7 +169,9 @@ int main()
                     //TODO: may just not to use char to int & int to char
                     //uint32_t size = char42int(size_buff);
                     uint32_t *size = (uint32_t*)size_buff;
+                    cout<<"size:"<< *size <<endl;
                     valread = read(sd, type_buff, 4);
+                    cout<<"valread:"<<valread<<endl;
                     uint32_t *type = (uint32_t*)type_buff;  
 
                     buff = new char[*size+10]; 
@@ -182,7 +184,7 @@ int main()
                         if(result == REGISTER_SUCCESS)
                         {
                             //only return REGISTER_SUCCESS, nothing else    
-                            cout << "TESTING: REGISTER_SUCCESS in binder.cpp" << endl;  // TO_DO                        
+                            //cout << "TESTING: REGISTER_SUCCESS in binder.cpp" << endl;  // TO_DO                        
                             uint32_t length = 0; 
                             char* sendChar = new char[8 + length];
                             char lengthChar[4]; 
@@ -250,7 +252,7 @@ int main()
                     }
                     else
                     {
-                        cout<<"*****received what?:"<<*type<<endl;
+                        cout<<"===================received what?:"<<*type<<endl;
                     }
                     delete [] buff;
                 }

@@ -23,31 +23,29 @@
 #include "serverDB.h"
 #include "const.h"
 
-#define MAX_CLIENTS 10
-
+#define MAX_CLIENTS 20
 using namespace std;
 
+//yiyao
+int binderSocket; 
+int clientSocket; 
+int sockfd;
+char serverID[SIZE_IDENTIFIER];
+char serverPort[SIZE_PORTNO];
+ServerDB serverDatabase; 
+
+//tim
 char server_id[SIZE_IDENTIFIER];
 char server_port[SIZE_PORTNO]; 
 char rcv_name[SIZE_NAME];
 //char* rcv_argTypes;
 //char** rcv_args; 
 int reasonCode; 
-
 //ServerDB serverDatabase;    // TODO: already in rpcInit.cpp 
 //int binderSocket;           // TODO: This is defined in rpcInit.cpp
 fd_set master;    // master file descriptor list (used in rpcExecute())
 int terminate_flag = 0;     // 1 means receive terminate request
 
-
-// These are origially form rpcInit.cpp
-int binderSocket; 
-int clientSocket; 
-//int sockfd;
-char serverID[SIZE_IDENTIFIER];
-char serverPort[SIZE_PORTNO];
-
-ServerDB serverDatabase; 
 //
 
 
@@ -233,9 +231,6 @@ int connection(const char* hostname, const char* port, int *sockfd) {
 }
 
 
-
-//////////////////////////////////////////////////////////////////////////////////////////
-// The following are originally form rpcInit.cpp
 void ConnectBinder()
 {
     struct sockaddr_in addr;
@@ -275,8 +270,6 @@ void ConnectBinder()
         perror("ERROR connect");
         exit(-1);
     }
-
-    cout << "In ConnectBinder, binderSocket = " << binderSocket << endl;
 }
 
 //Determine the identifier & portno 
@@ -307,7 +300,7 @@ void GetSelfID()
     }
 
     //make this socket a passive one
-    if(listen(clientSocket, MAX_CLIENTS))  
+    if(listen(clientSocket, MAX_CLIENTS))  // max 5 conns
     {
         perror("ERROR listen");
         exit(-1);
@@ -327,8 +320,6 @@ void GetSelfID()
     memcpy(serverID, hostname, SIZE_IDENTIFIER); 
     uint16_t pno = ntohs(addr.sin_port); 
     memcpy(serverPort, (char*)(&pno), SIZE_PORTNO); 
-
-    cout << "In GetSelfID, clientSocket = " << clientSocket << endl;
 }
 
 int rpcInit()
@@ -339,38 +330,36 @@ int rpcInit()
     return 0; 
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
 int rpcRegister(char* name, int *argTypes, skeleton f)
 {    
     //firstly send to binder 
-    char* send; 
+    char* send_buff; 
     int valread;
     int argSize = getTypeLength(argTypes);
     int totalSize = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME + argSize; 
-    send = new char[totalSize + 8];
+    send_buff = new char[totalSize + 8];
 
     //marshall everything into the stream to binder 
     char sizeChar[4]; 
     //int2char4(totalSize, sizeChar);
-    memcpy(send, (char*)&totalSize, 4); 
+    memcpy(send_buff, (char*)&totalSize, 4); 
 
     char typeChar[4];
     //int2char4(REGISTER, typeChar);
     int t = REGISTER;
-    memcpy(send+4, (char*)&t , 4);
+    memcpy(send_buff+4, (char*)&t , 4);
 
-    memcpy(send+8, serverID, SIZE_IDENTIFIER);
-    memcpy(send+8+SIZE_IDENTIFIER, serverPort, SIZE_PORTNO); 
-    memcpy(send+8+SIZE_IDENTIFIER+SIZE_PORTNO, name, SIZE_NAME); 
-    memcpy(send+8+SIZE_IDENTIFIER+SIZE_PORTNO+SIZE_NAME, argTypes, argSize);
-    write(binderSocket, (void*)send, totalSize+8);
+    memcpy(send_buff+8, serverID, SIZE_IDENTIFIER);
+    memcpy(send_buff+8+SIZE_IDENTIFIER, serverPort, SIZE_PORTNO); 
+    memcpy(send_buff+8+SIZE_IDENTIFIER+SIZE_PORTNO, name, SIZE_NAME); 
+    memcpy(send_buff+8+SIZE_IDENTIFIER+SIZE_PORTNO+SIZE_NAME, argTypes, argSize);
+    write(binderSocket, (void*)send_buff, totalSize+8);
     cout<<"sent"<<endl;
 
     //TODO: error handling, eg: can't connect to binder
     //TODO: not sure if 'read' immediately after 'write' works
     char size_buff[4];
     valread = read(binderSocket, size_buff, 4);
-
 
     if(valread < 0)
     {
@@ -390,16 +379,16 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
         uint32_t *type = (uint32_t*)type_buff;
         if(*type == REGISTER_SUCCESS)
         {
-            cout << "Testing: REGISTER_SUCCESS in rpc.cpp" << endl;      // TO_DO: for testing, delete later
+            //cout << "Testing: REGISTER_SUCCESS in rpcInit.cpp" << endl;      // TO_DO: for testing, delete later
         }  
         else
         {
             //read error here
-            cout << "Testing: REGISTER_FAILURE in rpc.cpp" << endl;      // TO_DO: for testing, delete later
+            //cout << "Testing: REGISTER_FAILURE in rpcInit.cpp" << endl;      // TO_DO: for testing, delete later
             return REGISTER_FAILURE; 
         }
     }
-    cout << "Testing: REGISTER_SUCCESS in rpc.cpp end" << endl;      // TO_DO: for testing, delete later
+    //cout << "Testing: REGISTER_SUCCESS in rpcInit.cpp end" << endl;      // TO_DO: for testing, delete later
     //store to local DB
     serverDatabase.Add(name, argTypes, f);
 
