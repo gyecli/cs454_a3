@@ -1,6 +1,6 @@
-#include "rpc.h"
-#include "server_function_skels.h"
 #include <stdio.h>
+#include "../rpc.h"
+#include "my_server_function_skels.h"
 
 int main(int argc, char *argv[]) {
   

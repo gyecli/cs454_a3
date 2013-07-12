@@ -15,4 +15,9 @@
 .DS_Store
 *~
 *.swp
-.out
+*.out
+
+client
+binder
+server
+*.run
