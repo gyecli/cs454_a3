@@ -1,4 +1,6 @@
-all: librpc.a
+target: librpc.a
+
+all: target test_server.run test_client.run test_binder.run
 
 librpc.a: rpc.o server_loc.o prosig.o helper.o serverDB.o
 	ar rvs $@ $^
