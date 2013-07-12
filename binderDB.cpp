@@ -32,19 +32,35 @@ list<ProLoc>::iterator BinderDB::SearchHelper(Prosig function, ServerLoc ser)
     int i=0; 
     for(list<ProLoc>::iterator it=database.begin(); it!=database.end(); ++it)
     {
-        //cout<<i<<endl;
+        cout<<i<<endl;
         ++i;
+        cout<<"function:"<<function.name<<" "<<function.argNum<<endl;
+        cout<<"current:"<<it->first.name<<" "<<it->first.argNum<<endl;
 
-        //cout<<"function:"<<function.name<<" "<<function.argNum<<endl;
-        //cout<<"current:"<<it->first.name<<" "<<it->first.argNum<<endl;
+        if(function == it->first)
+        {
+            cout<<"first same"<<endl; 
+        }
+        if(!(ser == it->second))
+        {
+            cout<<"from server:"<<endl; 
+            cout<<ser.identifier<<endl;
+            unsigned short *p = (unsigned short*)ser.portno; 
+            cout<<*p<<endl; 
+
+            cout<<"in database:"<<endl;
+            cout<<it->second.identifier<<endl;
+            p = (unsigned short*)it->second.portno; 
+            cout<<*p<<endl;
+        }
 
         if(function == it->first && ser == it->second)
         {
-            //std::cout<<"found"<<std::endl; 
+            std::cout<<"found"<<std::endl; 
             return it; 
         }
     }
-    //std::cout<<"not found"<<std::endl<<endl; 
+    std::cout<<"not found"<<std::endl<<endl; 
     return database.end(); 
 }
 

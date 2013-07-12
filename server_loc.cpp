@@ -21,16 +21,20 @@ ServerLoc::ServerLoc(char* identifier, char* portno)
 
 bool ServerLoc::operator == (const ServerLoc &other) const
 {
-    int n; 
-    //compare the memory pointed 
-    n = memcmp(this->portno, other.portno, SIZE_PORTNO);
-    if(n != 0)
+    unsigned char *portLeft = (unsigned char*) this->portno;
+    unsigned char *portRight = (unsigned char*) other.portno;
+
+    if(*portLeft != *portRight)
+    {
         return false; 
-    n = memcmp(this->identifier, other.identifier, SIZE_IDENTIFIER);
-    if(n != 0)
-        return false;
-    return true; 
     }
+    if(strcmp(this->identifier, other.identifier) != 0)
+    {
+        return false; 
+    }
+
+    return true; 
+}
 
 ServerLoc::~ServerLoc()
 {

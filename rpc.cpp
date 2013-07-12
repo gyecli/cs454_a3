@@ -336,9 +336,9 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
 
     //marshall everything into the stream to binder 
 
-    cout<<"before register, my current porno is:"<<endl;
-    unsigned short *pp = (unsigned short*)serverPort; 
-    cout<<*pp<<endl; 
+    //cout<<"before register, my current porno is:"<<endl;
+    //unsigned short *pp = (unsigned short*)serverPort; 
+    //cout<<*pp<<endl; 
 
     memcpy(send_buff, (char*)&totalSize, 4); 
     int t = REGISTER;

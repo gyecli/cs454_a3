@@ -173,7 +173,8 @@ int main()
                     uint32_t *type = (uint32_t*)type_buff;  
 
                     buff = new char[*size+10]; 
-                    valread = read(sd, buff, *size+10);
+                    valread = read(sd, buff, *size);
+                    buff[*size] = '\0';
 
                     if(*type == REGISTER)
                     {
