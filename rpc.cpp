@@ -58,7 +58,7 @@ struct arg_struct {
 };
 
 
-void* execute(void* arguments);  // Prototype
+static void* execute(void* arguments);  // Prototype
 
 //////////////////////////////////////////////////////////////////////////////////////////
 int calculate_num(char* buffer)
@@ -755,18 +755,16 @@ int rpcExecute(void) {
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-void print (void** args) {
+static void print (void** args) {
     cout << "arg 1: " << *(int *)args[1] << endl;
     cout << "arg 2: " << *(int *)args[2] << endl;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // when received request from clients, do the execution here
-void* execute(void* arguments) {
+static void* execute(void* arguments) {
     cout << "Entering execute()..." << endl;
     struct arg_struct *args = (struct arg_struct *)arguments;
-
-
 
     skeleton skel_func;
     if (serverDatabase.SearchSkeleton(args->name, args->argTypes, &skel_func) == false) {    // search in server local DB
