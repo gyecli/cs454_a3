@@ -217,9 +217,16 @@ int main()
                     {
                         cout<<"received a loc_Request"<<endl;
                         ServerLoc ser; 
-                        int result = loc_Request(buff, *size, &ser); 
+                        cout<<"size:" << *size << endl; 
+                        
+                        int result = loc_Request(buff, *size, &ser);
+
+                        cout<<"after search"<<endl; 
+
                         if(result == LOC_SUCCESS)
                         {
+                            cout<<"success"<<endl; 
+
                             int length = SIZE_IDENTIFIER + SIZE_PORTNO; 
                             char* sendChar = new char[8 + length];
                             char lengthChar[4]; 
