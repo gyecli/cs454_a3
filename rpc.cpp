@@ -59,7 +59,7 @@ struct arg_struct {
     void** args; 
 };
 
-void* execute(void* arguments);  // Prototype
+static void* execute(void* arguments);  // Prototype
 //////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -754,7 +754,7 @@ int rpcExecute(void) {
 }
 
 // when received request from clients, do the execution here
-void* execute(void* arguments) {
+static void* execute(void* arguments) {
     struct arg_struct *args = (struct arg_struct *)arguments;
 
     skeleton skel_func = serverDatabase.SearchSkeleton(args->name, args->argTypes);    // search in server local DB
