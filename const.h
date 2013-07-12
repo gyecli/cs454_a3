@@ -19,6 +19,7 @@
 #define EXECUTE_FAILURE -4
 #define RPCCALL_FAILURE -5
 #define TERMINATE_FAILURE -6	// added by Tim
+#define UNKNOWN_FAILURE -100
 
 //size
 #define SIZE_IDENTIFIER 128

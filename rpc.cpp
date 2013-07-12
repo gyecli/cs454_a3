@@ -58,14 +58,16 @@ struct arg_struct {
 };
 
 
-void* execute(void* arguments);  // Prototype
+static void* execute(void* arguments);  // Prototype
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // 1.extract from buffer(message), and then put the data correspondly 
 //   into argTypes & args
 // 2.argTypes & args are NOT from rpcCall()
-void pack(char* buffer, int** argTypes, void*** args) {
+static void pack(char* buffer, int** argTypes, void*** args) {
     cout << "TESTING 1: in pack() of rpc.cpp" << endl;
     int num = 0;            // number of argTypes
     int argLen = 0; 
@@ -236,12 +238,12 @@ void ConnectBinder(int* socketnum)
 
     if((hostAddr = getenv("BINDER_ADDRESS")) == 0)
     {
-        perror("can't get env variable SERVER_ADDRESS"); 
+        perror("can't get env variable BINDER_ADDRESS"); 
         exit(-1);
     }
     if((portno = getenv("BINDER_PORT"))==0)
     {
-        perror("can't get env variable SERVER_PORT");
+        perror("can't get env variable BINDER_ADDRESS");
         exit(-1);
     }
     struct hostent *he;
@@ -338,11 +340,11 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     send_buff = new char[totalSize + 8];
 
     //marshall everything into the stream to binder 
-    char sizeChar[4]; 
+    // char sizeChar[4]; 
     //int2char4(totalSize, sizeChar);
     memcpy(send_buff, (char*)&totalSize, 4); 
 
-    char typeChar[4];                   // TODO: still needed?
+    // char typeChar[4];                   // TODO: still needed?
     //int2char4(REGISTER, typeChar);
     int t = REGISTER;
     memcpy(send_buff+4, (char*)&t , 4);
@@ -370,7 +372,7 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     }
     else
     {
-        uint32_t *size = (uint32_t*)size_buff; 
+        // uint32_t *size = (uint32_t*)size_buff; 
         char type_buff[4];
         valread = read(binderSocket, type_buff, 4);
         uint32_t *type = (uint32_t*)type_buff;
@@ -380,7 +382,7 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
         // So we should read 4 more bytes
         char flag_buf[4]; 
         valread = read(binderSocket, flag_buf, 4);
-        uint32_t *i = (uint32_t*)flag_buf; 
+        // uint32_t *i = (uint32_t*)flag_buf; 
 
         if(*type == REGISTER_SUCCESS)
         {
@@ -453,7 +455,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
     {
         uint32_t *size = (uint32_t*)size_buff; 
         valread = read(binderSocket, type_buff, 4);
-        uint32_t *type = (uint32_t*)type_buff;
+        int32_t *type = (int32_t*)type_buff;
 
     	if (*type == LOC_SUCCESS) 
         {                 
@@ -512,7 +514,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
             {
                 uint32_t *rpy_size = (uint32_t*)size_buff; 
                 valread = read(sockfd, type_buff, 4);
-                uint32_t *rpy_type = (uint32_t*)type_buff;
+                int32_t *rpy_type = (int32_t*)type_buff;
 
                 if (*rpy_type == EXECUTE_SUCCESS) {
                     // 
@@ -531,12 +533,11 @@ int rpcCall(char* name, int* argTypes, void** args) {
                     memcpy(args, new_args, getArgsLength(new_argTypes));
 
                     close(sockfd);
-                } else if (*rpy_type == EXECUTE_FAILURE) 
-                {
+                } else if (*rpy_type == EXECUTE_FAILURE) {
                     return RPCCALL_FAILURE;
                 } else {
                     cout << "should not come here " << endl;
-                    return -10;
+                    return UNKNOWN_FAILURE;
                 }
             }
 
@@ -600,21 +601,23 @@ int rpcCall(char* name, int* argTypes, void** args) {
         else 
         {
             cout << "Shoudl not come here 2" << endl; 
-            return -10;             // TO_DO: haven't been determined
+            return UNKNOWN_FAILURE;             // TO_DO: haven't been determined
         }
     }
+
+    return UNKNOWN_FAILURE; 
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
-// get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
-{
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    }
+// //////////////////////////////////////////////////////////////////////////////////////////
+// // get sockaddr, IPv4 or IPv6:
+// void *get_in_addr(struct sockaddr *sa)
+// {
+//     if (sa->sa_family == AF_INET) {
+//         return &(((struct sockaddr_in*)sa)->sin_addr);
+//     }
 
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
+//     return &(((struct sockaddr_in6*)sa)->sin6_addr);
+// }
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // server calls rpcExecute: wait for and receive request 
@@ -624,7 +627,7 @@ int rpcExecute(void) {
     fd_set read_fds;  // temp file descriptor list for select()
     int fdmax;        // maximum file descriptor number
 
-    int listener;     // listening socket descriptor
+    // int listener;     // listening socket descriptor
     int newfd;        // newly accept()ed socket descriptor
     struct sockaddr_storage remoteaddr; // client address
     socklen_t addrlen;
@@ -632,8 +635,8 @@ int rpcExecute(void) {
 
     int nbytes;
 
-    struct sockaddr_in addr;
-    int s_len;
+    // struct sockaddr_in addr;
+    // int s_len;
 
     int i;
 
@@ -802,7 +805,7 @@ int rpcExecute(void) {
 }
 
 // when received request from clients, do the execution here
-void* execute(void* arguments) {
+static void* execute(void* arguments) {
     struct arg_struct *args = (struct arg_struct *)arguments;
 
     skeleton skel_func = serverDatabase.SearchSkeleton(args->name, args->argTypes);    // search in server local DB

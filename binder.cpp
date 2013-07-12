@@ -180,28 +180,25 @@ int main()
                     {
                         cout<<"received register"<<endl;
                         int result = binderRegister(buff, *size); 
-                        if(result == REGISTER_SUCCESS)
-                        {
+                        if (result == REGISTER_SUCCESS) {
                             //only return REGISTER_SUCCESS, nothing else    
                             //cout << "TESTING: REGISTER_SUCCESS in binder.cpp" << endl;  // TO_DO                        
                             uint32_t length = 0; 
                             char* sendChar = new char[8 + length];
-                            char lengthChar[4]; 
-                            char resultChar[4]; 
+                            // char lengthChar[4]; 
+                            // char resultChar[4]; 
                             //int2char4(length, lengthChar);
                             //int2char4(result, resultChar); 
                             memcpy(sendChar, (char*)&length, 4); 
                             memcpy(sendChar, (char*)&result, 4);
                             send(sd, sendChar, 8, 0); 
-                        }
-                        else if(result != REGISTER_SUCCESS)
-                        {
+                        } else {
                             //returns REGISTER_FAILURE, with an error code
                             uint32_t length = 4; 
                             char* sendChar = new char[8 + length];
-                            char lengthChar[4]; 
-                            char failChar[4]; 
-                            char resultChar[4]; 
+                            // char lengthChar[4]; 
+                            // char failChar[4]; 
+                            // char resultChar[4]; 
                             //int2char4(length, lengthChar);
                             //int2char4(REGISTER_FAILURE, failChar);
                             //int2char4(result, resultChar); 
@@ -211,9 +208,7 @@ int main()
                             memcpy(sendChar + 8, (char*)&result, 4); 
                             send(sd, sendChar, length + 8, 0); 
                         }
-                    }
-                    else if(*type == LOC_REQUEST)
-                    {
+                    } else if (*type == LOC_REQUEST) {
                         cout<<"received a loc_Request"<<endl;
                         ServerLoc ser; 
                         int result = Loc_Request(buff, *size, &ser);
@@ -236,9 +231,9 @@ int main()
                         {
                             int length = 4; 
                             char* sendChar = new char[8 + length];
-                            char lengthChar[4]; 
-                            char failChar[4]; 
-                            char resultChar[4]; 
+                            // char lengthChar[4]; 
+                            // char failChar[4]; 
+                            // char resultChar[4]; 
                             //int2char4(length, lengthChar);
                             //int2char4(LOC_FAILURE, failChar); 
                             //int2char4(result, resultChar);
