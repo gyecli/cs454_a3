@@ -41,8 +41,6 @@ char rcv_name[SIZE_NAME];
 //char* rcv_argTypes;
 //char** rcv_args; 
 int reasonCode; 
-//ServerDB serverDatabase;    // TODO: already in rpcInit.cpp 
-//int binderSocket;           // TODO: This is defined in rpcInit.cpp
 fd_set master;    // master file descriptor list (used in rpcExecute())
 int terminate_flag = 0;     // 1 means receive terminate request
 
@@ -68,6 +66,7 @@ void* execute(void* arguments);  // Prototype
 //   into argTypes & args
 // 2.argTypes & args are NOT from rpcCall()
 void pack(char* buffer, int** argTypes, void*** args) {
+    cout << "TESTING 1: in pack() of rpc.cpp" << endl;
     int num = 0;            // number of argTypes
     int argLen = 0; 
     char* it = buffer; 
@@ -76,6 +75,8 @@ void pack(char* buffer, int** argTypes, void*** args) {
     for (char* it = buffer; atoi(it) != 0; it = it+4) {
         num++; 
     }
+    cout << "TESTING 2: in pack() of rpc.cpp" << endl;
+
     *argTypes = new int[num+1];
 
     int i = 0; 
@@ -87,7 +88,7 @@ void pack(char* buffer, int** argTypes, void*** args) {
     }
     (*argTypes)[i] = 0; 
     it += 4;                    // it now points to args in buffer
-
+    cout << "TESTING 3: in pack() of rpc.cpp" << endl;
     argLen = getArgsLength(*argTypes); 
 
     (*args) = new void* [num * sizeof(void *)];           // TODO: not sure here
@@ -100,7 +101,8 @@ void pack(char* buffer, int** argTypes, void*** args) {
     long *temp4;
     double *temp5;
     float *temp6;
-
+    cout << "TESTING 4: in pack() of rpc.cpp" << endl;
+    cout << "(*argTypes)[j] " << (*argTypes)[j] << endl; 
     while((*argTypes)[j] != 0) {          // last element of argTypes is always ZERO
         // Type_mask:  (255 << 16)
         unsigned int current_type = ((*argTypes)[j] & Type_mask) >> 16; 
@@ -112,7 +114,7 @@ void pack(char* buffer, int** argTypes, void*** args) {
             num = 1; 
             flag = 1;       // 1 means the arg is a scalar, not an array
         }
-
+        cout << "TESTING 5: in pack() of rpc.cpp" << endl;
         switch(current_type) {
             case ARG_CHAR:
                 // type: char
@@ -185,6 +187,7 @@ void pack(char* buffer, int** argTypes, void*** args) {
             default:
                 break;
         }
+        cout << "TESTING 6: in pack() of rpc.cpp" << endl;
         j++; 
     }
 }
@@ -339,7 +342,7 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     //int2char4(totalSize, sizeChar);
     memcpy(send_buff, (char*)&totalSize, 4); 
 
-    char typeChar[4];
+    char typeChar[4];                   // TODO: still needed?
     //int2char4(REGISTER, typeChar);
     int t = REGISTER;
     memcpy(send_buff+4, (char*)&t , 4);
@@ -370,16 +373,25 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
         uint32_t *size = (uint32_t*)size_buff; 
         char type_buff[4];
         valread = read(binderSocket, type_buff, 4);
-
         uint32_t *type = (uint32_t*)type_buff;
+
+        // by tim
+        // TODO: There should be a integer follwing message type to indicate warnings or errors (page 6)
+        // So we should read 4 more bytes
+        char flag_buf[4]; 
+        valread = read(binderSocket, flag_buf, 4);
+        uint32_t *i = (uint32_t*)flag_buf; 
+
         if(*type == REGISTER_SUCCESS)
         {
             //cout << "Testing: REGISTER_SUCCESS in rpcInit.cpp" << endl;      // TO_DO: for testing, delete later
+            //TODO: sth to do with the flag_buf integer
         }  
         else
         {
             //read error here
             //cout << "Testing: REGISTER_FAILURE in rpcInit.cpp" << endl;      // TO_DO: for testing, delete later
+            //TODO: sth to do with the flag_buf integer
             return REGISTER_FAILURE; 
         }
     }
@@ -447,7 +459,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
         {                 
     		// now extract server name (128 bytes) and server port (2 bytes)
             cout << "LOC_SUCCESS in rpcCall()" << endl;
-            buff = new char[*size+10]; 
+            buff = new char[*size+10];              // TODO why put 10 here?
             valread = read(sockfd, buff, *size+10);
             if(valread < 0)
             {
@@ -480,6 +492,55 @@ int rpcCall(char* name, int* argTypes, void** args) {
     		memcpy(buffer+8, name, SIZE_NAME); 
     		memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
             memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), args, getArgsLength(argTypes));
+
+            write(sockfd, (void*)buffer, 8+messageLen);
+
+            // wait for reply msg from Binder
+            valread = read(sockfd, size_buff, 4);
+
+            if(valread < 0)
+            {
+                error("ERROR read from socket, probably due to connection failure");
+                return RPCCALL_FAILURE;         // TO_DO: should put a LOC_
+            }
+            else if(valread == 0)
+            {
+                //TODO figure out the error case
+                return LOC_FAILURE; 
+            }
+            else 
+            {
+                uint32_t *rpy_size = (uint32_t*)size_buff; 
+                valread = read(sockfd, type_buff, 4);
+                uint32_t *rpy_type = (uint32_t*)type_buff;
+
+                if (*rpy_type == EXECUTE_SUCCESS) {
+                    // 
+                    buff = new char[*rpy_size];      //
+                    valread = read(sockfd, buff, *rpy_size);
+                    if(valread < 0)
+                    {
+                        error("ERROR read from socket, probably due to connection failure");
+                        return RPCCALL_FAILURE; 
+                    }
+
+                    int * new_argTypes;
+                    void** new_args;
+                    pack(buff, &new_argTypes, &new_args);
+
+                    memcpy(args, new_args, getArgsLength(new_argTypes));
+
+                    close(sockfd);
+                } else if (*rpy_type == EXECUTE_FAILURE) 
+                {
+                    return RPCCALL_FAILURE;
+                } else {
+                    cout << "should not come here " << endl;
+                    return -10;
+                }
+            }
+
+    
 
 /*
             // send EXECUTE request to server
@@ -666,7 +727,9 @@ int rpcExecute(void) {
                         FD_CLR(i, &master); // remove from master set
                     } else {
                         // we got some data from a client
-                        cout << "TESTING: in rpcExecute() of rpc.cpp" << endl;
+                        cout << "TESTING 1: got some data from clients in rpcExecute() of rpc.cpp" << endl;
+                        cout << "TESTING 1: nbytes: " << nbytes << endl;    // TODO: we got 4 bytes left from bindersocket (from register transaction)
+                        cout << "TESTING 1: current socket #: " << i << endl; 
                         char rcv_len[4];
                         char rcv_type[4]; 
                         memcpy(rcv_len, buf, 4); 
@@ -700,15 +763,18 @@ int rpcExecute(void) {
                         int* new_argTypes;
                         void** new_args; 
 
+                        cout << "TESTING 2: in rpcExecute() of rpc.cpp" << endl;
+
                         // pack() will put info of newRcvMsg into argTypes & args respectively
                         pack(newRcvMsg, &new_argTypes, &new_args);  // TO_DO: & OR *
                         
+                        cout << "TESTING 3: in rpcExecute() of rpc.cpp" << endl;
                         struct arg_struct args;
                         args.sockfd = i;
                         args.name = name;
                         args.argTypes = new_argTypes; 
                         args.args = new_args; 
-
+                        //cout << "TESTING 4: in rpcExecute() of rpc.cpp" << endl;
                         // TODO: still need the definition of search_skel()
                         pthread_t newThread; 
                         thread_list.push_back(newThread); 
@@ -716,7 +782,7 @@ int rpcExecute(void) {
                             cerr << "ERROR in creating new thread" << endl;
                         }
 
-                        
+                        //cout << "TESTING 5: in rpcExecute() of rpc.cpp" << endl;
                     }
                 } // END handle data from client
             } // END got new incoming connection

@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
     printf("failure\n"); 
 
   /* call rpcExecute */
-  //rpcExecute();
+  rpcExecute();
 
   /* return */
   return 0;
