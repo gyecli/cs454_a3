@@ -231,7 +231,7 @@ int connection(const char* hostname, const char* port, int *sockfd) {
 }
 
 
-void ConnectBinder()
+void ConnectBinder(int* socketnum)
 {
     struct sockaddr_in addr;
     char* hostAddr, *portno; 
@@ -257,15 +257,15 @@ void ConnectBinder()
     addr.sin_family = AF_INET;
     addr.sin_port = htons(atoi(portno));
     memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
-    binderSocket = socket(PF_INET, SOCK_STREAM, 0);
+    *socketnum = socket(PF_INET, SOCK_STREAM, 0);
 
-    if(binderSocket == 0)
+    if(*socketnum == 0)
     {
         perror("ERROR socket");
         exit(-1);
     }
 
-    if(connect(binderSocket, (struct sockaddr *)&addr, sizeof(addr))<0)
+    if(connect(*socketnum, (struct sockaddr *)&addr, sizeof(addr))<0)
     {
         perror("ERROR connect");
         exit(-1);
@@ -324,7 +324,7 @@ void GetSelfID()
 
 int rpcInit()
 {
-    GetSelfID();    
+    GetSelfID(&binderSocket);    
     ConnectBinder(); 
     //TODO: handle error cases
     return 0; 
@@ -407,7 +407,6 @@ int rpcCall(char* name, int* argTypes, void** args) {
     // Note: right now no need to check
     //*************************************************
 	/*
-    int sockfd; 
 
     string Binder_id = getenv("BINDER_ADDRESS");
     string Binder_port = getenv("BINDER_PORT"); 
@@ -417,6 +416,9 @@ int rpcCall(char* name, int* argTypes, void** args) {
         return -1;      // TO_DO:  need a better meaningful negative number
     }
 */
+
+    int sockfd; 
+    ConnectBinder(&sockfd);
 
     // send LOC_REQUEST message to Binder
     int msgLen = (SIZE_NAME + getTypeLength(argTypes));  // name, argTypes
@@ -429,14 +431,14 @@ int rpcCall(char* name, int* argTypes, void** args) {
     memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
 
     // send LOC_REQUEST msg to Binder
-    if (send(binderSocket, buffer, msgLen+8, 0) == -1) {
+    if (send(sockfd, buffer, msgLen+8, 0) == -1) {
         cerr << "ERROR in sending LOC_REQUEST to Binder" << endl;
     } 
     cout<<"after send LOC_REQUEST"<<endl;
 
     // wait for reply msg from Binder
     char rcv_buffer[8]; 
-    int numbytes = recv(binderSocket, rcv_buffer, 8, 0);
+    int numbytes = recv(sockfd, rcv_buffer, 8, 0);
     if (numbytes < 0) {
     	cerr << "ERROR in recving LOC reply from Binder" << endl;
     	exit(1); 
