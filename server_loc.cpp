@@ -2,6 +2,10 @@
 #include "server_loc.h"
 #include "const.h"
 
+//TODO: delete these
+#include <iostream>
+using namespace std;
+
 ServerLoc::ServerLoc()
 {
         //TODO: not sure if i should initialize them
@@ -12,7 +16,7 @@ ServerLoc::ServerLoc()
 ServerLoc::ServerLoc(char* identifier, char* portno)
 {
     strcpy(this->identifier, identifier); 
-    strcpy(this->identifier, identifier); 
+    strcpy(this->portno, portno); 
 }
 
 bool ServerLoc::operator == (const ServerLoc &other) const

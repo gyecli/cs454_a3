@@ -55,9 +55,12 @@ int BinderDB::SearchServer(Prosig function, ServerLoc *ser)
     {
         if(function == it->first)
         {
+            cout<<"function loc foound"<<endl;
             *ser = it->second;
             return LOC_SUCCESS; 
         }
     }
+    cout<<"not foound function loc"<<endl;
+
     return LOC_FAILURE; 
 }

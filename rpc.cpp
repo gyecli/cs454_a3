@@ -339,7 +339,7 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     cout<<"before register, my current porno is:"<<endl;
     unsigned short *pp = (unsigned short*)serverPort; 
     cout<<*pp<<endl; 
-    
+
     memcpy(send_buff, (char*)&totalSize, 4); 
     int t = REGISTER;
     memcpy(send_buff+4, (char*)&t , 4);
@@ -388,7 +388,6 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
             return REGISTER_FAILURE; 
         }
     }
-    //cout << "Testing: REGISTER_SUCCESS in rpcInit.cpp end" << endl;      // TO_DO: for testing, delete later
     //store to local DB
     serverDatabase.Add(name, argTypes, f);
 
@@ -425,13 +424,20 @@ int rpcCall(char* name, int* argTypes, void** args) {
     memcpy(send_buff + 8, name, SIZE_NAME);                // and then msg = name + argTypes
     memcpy(send_buff + 8 + SIZE_NAME, argTypes, getTypeLength(argTypes)); 
 
+    cout<<"before send"<<endl; 
+
     // send LOC_REQUEST msg to Binder
     if (send(sockfd, send_buff, msgLen + 8, 0) == -1) {
         cerr << "ERROR in sending LOC_REQUEST to Binder" << endl;
     } 
 
+    cout<<"after send, before read"<<endl; 
+
     // wait for reply msg from Binder
-    valread = read(binderSocket, size_buff, 4);
+    valread = read(sockfd, size_buff, 4);
+        cout<<"after read"<<endl; 
+        cout<<valread<<endl;
+
     if(valread < 0)
     {
         error("ERROR read from socket, probably due to connection failure");
@@ -439,14 +445,17 @@ int rpcCall(char* name, int* argTypes, void** args) {
     }
     else if(valread == 0)
     {
+        cout<<"0"<<endl;
         //TODO figure out the error case
         return LOC_FAILURE; 
     }
     else
     {
         uint32_t *size = (uint32_t*)size_buff; 
-        valread = read(binderSocket, type_buff, 4);
+        valread = read(sockfd, type_buff, 4);
         uint32_t *type = (uint32_t*)type_buff;
+
+        cout<<"rpcCall here"<<endl;
 
     	if (*type == LOC_SUCCESS) 
         {                 
@@ -469,6 +478,10 @@ int rpcCall(char* name, int* argTypes, void** args) {
             //cout<<"port:" << string(server_port) <<endl;
 
     		close(sockfd);    // close socket between client and binder
+
+            cout<<"before connect to server:"<<endl;
+            unsigned short *p = (unsigned short*) server_port;
+            cout<<server_id<<endl<<*p<<endl;
 
             // Now connect to target server
     		if (connectServer(server_id, server_port, &sockfd) < 0) {

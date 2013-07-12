@@ -35,10 +35,6 @@ int binderRegister(char* received, int size)
     memcpy(portno, received + SIZE_IDENTIFIER, SIZE_PORTNO); 
     memcpy(name, received + SIZE_IDENTIFIER + SIZE_PORTNO, SIZE_NAME); 
 
-    cout<<"received in binder, portno is:"<<endl;
-    unsigned short *pp = (unsigned short *)portno; 
-    cout<<*pp<<endl;
-  
     int used_size = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME; 
     char* buff = new char[size - used_size]; 
     memcpy(buff, received + used_size, size - used_size);
@@ -47,11 +43,6 @@ int binderRegister(char* received, int size)
     Prosig pro = MakePro(name, argTypes);
     ServerLoc ser = ServerLoc(server_id, portno);
     int result = db.Register(pro, ser); 
-
-    cout<<"after register:"<<endl;
-    cout<<ser.identifier<<endl;
-    unsigned short *p = (unsigned short*) ser.portno; 
-    cout<<*p<<endl;
 
     return result; 
 }
@@ -223,15 +214,13 @@ int main()
                             int length = SIZE_IDENTIFIER + SIZE_PORTNO;
                             char* sendChar = new char[8 + length];
 
-                            cout<<ser.identifier<<endl;
-                            cout << ser.portno << endl; 
-
                             memcpy(sendChar, (char*)&length, 4); 
                             memcpy(sendChar + 4, (char*)&result, 4);
                             memcpy(sendChar + 8, ser.identifier, SIZE_IDENTIFIER);
                             memcpy(sendChar + 8 + SIZE_IDENTIFIER, ser.portno, SIZE_PORTNO); 
 
                             send(sd, sendChar, length + 8, 0);
+                            cout<<"sent"<<endl;
                         }
                         else if(result != LOC_SUCCESS)
                         {
