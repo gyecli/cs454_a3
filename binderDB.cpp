@@ -6,6 +6,7 @@
 
 using namespace std;
 
+//TODO: is there any other type of errors for register?
 int BinderDB::Register(Prosig function, ServerLoc ser)
 {
     list<ProLoc>::iterator it = SearchHelper(function, ser); 
@@ -29,22 +30,21 @@ using namespace std;
 list<ProLoc>::iterator BinderDB::SearchHelper(Prosig function, ServerLoc ser)
 {
     int i=0; 
-    cout<<"TESTing: in binder.cpp, Binder size:"<<database.size()<<endl; 
     for(list<ProLoc>::iterator it=database.begin(); it!=database.end(); ++it)
     {
-        cout<<i<<endl;
+        //cout<<i<<endl;
         ++i;
 
-        cout<<"function:"<<function.name<<" "<<function.argNum<<endl;
-        cout<<"current:"<<it->first.name<<" "<<it->first.argNum<<endl;
+        //cout<<"function:"<<function.name<<" "<<function.argNum<<endl;
+        //cout<<"current:"<<it->first.name<<" "<<it->first.argNum<<endl;
 
         if(function == it->first && ser == it->second)
         {
-            std::cout<<"found"<<std::endl; 
+            //std::cout<<"found"<<std::endl; 
             return it; 
         }
     }
-    std::cout<<"not found"<<std::endl<<endl; 
+    //std::cout<<"not found"<<std::endl<<endl; 
     return database.end(); 
 }
 

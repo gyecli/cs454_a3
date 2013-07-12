@@ -59,7 +59,6 @@ struct arg_struct {
     void** args; 
 };
 
-
 void* execute(void* arguments);  // Prototype
 //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -189,7 +188,7 @@ void pack(char* buffer, int** argTypes, void*** args) {
     }
 }
 //////////////////////////////////////////////////////////////////////////////////////////
-// Helper function to create a connection 
+// Helper function to create a connection, to be used by client to connect to server 
 // return 0 on success, negative number on failure
 // Assuming "sockfd" is already assigned
 int connectServer(const char* hostAddr, const char* portno, int *socketnum) 
@@ -314,6 +313,7 @@ void GetSelfID()
 
     memcpy(serverID, hostname, SIZE_IDENTIFIER); 
     uint16_t pno = ntohs(addr.sin_port); 
+    cout<<"my own porno:"<<pno<<endl;
     memcpy(serverPort, (char*)(&pno), SIZE_PORTNO); 
 }
 
@@ -335,21 +335,19 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     send_buff = new char[totalSize + 8];
 
     //marshall everything into the stream to binder 
-    char sizeChar[4]; 
-    //int2char4(totalSize, sizeChar);
-    memcpy(send_buff, (char*)&totalSize, 4); 
 
-    char typeChar[4];
-    //int2char4(REGISTER, typeChar);
+    cout<<"before register, my current porno is:"<<endl;
+    unsigned short *pp = (unsigned short*)serverPort; 
+    cout<<*pp<<endl; 
+    
+    memcpy(send_buff, (char*)&totalSize, 4); 
     int t = REGISTER;
     memcpy(send_buff+4, (char*)&t , 4);
-
     memcpy(send_buff+8, serverID, SIZE_IDENTIFIER);
     memcpy(send_buff+8+SIZE_IDENTIFIER, serverPort, SIZE_PORTNO); 
     memcpy(send_buff+8+SIZE_IDENTIFIER+SIZE_PORTNO, name, SIZE_NAME); 
     memcpy(send_buff+8+SIZE_IDENTIFIER+SIZE_PORTNO+SIZE_NAME, argTypes, argSize);
     write(binderSocket, (void*)send_buff, totalSize+8);
-    cout<<"sent"<<endl;
 
     //TODO: error handling, eg: can't connect to binder
     //TODO: not sure if 'read' immediately after 'write' works
@@ -374,12 +372,19 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
         uint32_t *type = (uint32_t*)type_buff;
         if(*type == REGISTER_SUCCESS)
         {
-            //cout << "Testing: REGISTER_SUCCESS in rpcInit.cpp" << endl;      // TO_DO: for testing, delete later
+            char warning_buff[4]; 
+            valread = read(binderSocket, warning_buff, 4);
+            int* warning = (int*) warning_buff; 
+
+            if(*warning > 0)
+                cout<<"Warning: "<< *warning; 
         }  
         else
         {
-            //read error here
-            //cout << "Testing: REGISTER_FAILURE in rpcInit.cpp" << endl;      // TO_DO: for testing, delete later
+            char error_buff[4]; 
+            valread = read(binderSocket, error_buff, 4);
+            int* error_code = (int*) error_buff; 
+            cout<<"error:"<<*error_code<<endl;
             return REGISTER_FAILURE; 
         }
     }

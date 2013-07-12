@@ -31,13 +31,14 @@ int binderRegister(char* received, int size)
     char name[SIZE_NAME];
     int* argTypes;
 
-    //TODO: add 8 or not, it to be determined, 
-    //dependent on how binder read data from socket 
-    //should not add 8 normally
     memcpy(server_id, received, SIZE_IDENTIFIER); 
     memcpy(portno, received + SIZE_IDENTIFIER, SIZE_PORTNO); 
     memcpy(name, received + SIZE_IDENTIFIER + SIZE_PORTNO, SIZE_NAME); 
-    
+
+    cout<<"received in binder, portno is:"<<endl;
+    unsigned short *pp = (unsigned short *)portno; 
+    cout<<*pp<<endl;
+  
     int used_size = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME; 
     char* buff = new char[size - used_size]; 
     memcpy(buff, received + used_size, size - used_size);
@@ -45,9 +46,14 @@ int binderRegister(char* received, int size)
 
     Prosig pro = MakePro(name, argTypes);
     ServerLoc ser = ServerLoc(server_id, portno);
-    return db.Register(pro, ser); 
+    int result = db.Register(pro, ser); 
 
-    //return 0;   // TODO: havn't figured out return type 
+    cout<<"after register:"<<endl;
+    cout<<ser.identifier<<endl;
+    unsigned short *p = (unsigned short*) ser.portno; 
+    cout<<*p<<endl;
+
+    return result; 
 }
 
 int Loc_Request(char* received, int size, ServerLoc *ser)
@@ -58,6 +64,11 @@ int Loc_Request(char* received, int size, ServerLoc *ser)
     memcpy(argTypes, received + SIZE_NAME, size - SIZE_NAME);
     Prosig function = MakePro(name, (int*)argTypes);
     int result = db.SearchServer(function, ser);
+
+    cout<<"serch result"<<endl;
+    cout<<ser->identifier<<endl;
+    unsigned short *p = (unsigned short*) ser->portno; 
+    cout<<*p<<endl;
 
     return result; 
 }
@@ -165,12 +176,9 @@ int main()
                 }
                 else
                 {
-                    //TODO: may just not to use char to int & int to char
-                    //uint32_t size = char42int(size_buff);
                     uint32_t *size = (uint32_t*)size_buff;
-                    cout<<"size:"<< *size <<endl;
+                    //cout<<"size:"<< *size <<endl;
                     valread = read(sd, type_buff, 4);
-                    cout<<"valread:"<<valread<<endl;
                     uint32_t *type = (uint32_t*)type_buff;  
 
                     buff = new char[*size+10]; 
@@ -178,39 +186,29 @@ int main()
 
                     if(*type == REGISTER)
                     {
-                        cout<<"received register"<<endl;
+                        //cout<<"received register"<<endl;
                         int result = binderRegister(buff, *size); 
+                        uint32_t length = 4; 
+                        char* sendChar = new char[8 + length];
+                        int success; 
+
                         if(result == REGISTER_SUCCESS)
                         {
-                            //only return REGISTER_SUCCESS, nothing else    
-                            //cout << "TESTING: REGISTER_SUCCESS in binder.cpp" << endl;  // TO_DO                        
-                            uint32_t length = 4; 
-                            char* sendChar = new char[8 + length];
-                            char lengthChar[4]; 
-                            char resultChar[4]; 
-                            //int2char4(length, lengthChar);
-                            //int2char4(result, resultChar); 
-                            memcpy(sendChar, (char*)&length, 4); 
-                            memcpy(sendChar, (char*)&result, 4);
-                            send(sd, sendChar, 8 + length, 0); 
+                            success = REGISTER_SUCCESS;
+                            result = 0; 
                         }
-                        else if(result != REGISTER_SUCCESS)
+                        else if(result == REGISTER_DUPLICATE)
                         {
-                            //returns REGISTER_FAILURE, with an error code
-                            uint32_t length = 4; 
-                            char* sendChar = new char[8 + length];
-                            char lengthChar[4]; 
-                            char failChar[4]; 
-                            char resultChar[4]; 
-                            //int2char4(length, lengthChar);
-                            //int2char4(REGISTER_FAILURE, failChar);
-                            //int2char4(result, resultChar); 
-                            memcpy(sendChar, (char*)&length, 4); 
-                            int f = REGISTER_FAILURE;
-                            memcpy(sendChar + 4, (char*)&f,4);
-                            memcpy(sendChar + 8, (char*)&result, 4); 
-                            send(sd, sendChar, length + 8, 0); 
+                            success = REGISTER_SUCCESS;
                         }
+                        else
+                        {
+                            success = REGISTER_FAILURE; 
+                        }
+                        memcpy(sendChar, (char*)&length, 4); 
+                        memcpy(sendChar + 4, (char*)&success, 4);
+                        memcpy(sendChar + 8, (char*)&result, 4); 
+                        send(sd, sendChar, 8 + length, 0); 
                     }
                     else if(*type == LOC_REQUEST)
                     {
@@ -222,8 +220,11 @@ int main()
                         {
                             cout<<"success"<<endl; 
 
-                            int length = SIZE_IDENTIFIER + SIZE_PORTNO; 
+                            int length = SIZE_IDENTIFIER + SIZE_PORTNO;
                             char* sendChar = new char[8 + length];
+
+                            cout<<ser.identifier<<endl;
+                            cout << ser.portno << endl; 
 
                             memcpy(sendChar, (char*)&length, 4); 
                             memcpy(sendChar + 4, (char*)&result, 4);
@@ -236,12 +237,6 @@ int main()
                         {
                             int length = 4; 
                             char* sendChar = new char[8 + length];
-                            char lengthChar[4]; 
-                            char failChar[4]; 
-                            char resultChar[4]; 
-                            //int2char4(length, lengthChar);
-                            //int2char4(LOC_FAILURE, failChar); 
-                            //int2char4(result, resultChar);
                             memcpy(sendChar, (char*)&length, 4); 
                             int f = LOC_FAILURE;
                             memcpy(sendChar + 4, (char*)&f, 4);
@@ -251,7 +246,7 @@ int main()
                     }
                     else
                     {
-                        cout<<"===================received what?:"<<*type<<endl;
+                        //cout<<"===================received what?:"<<*type<<endl;
                     }
                     delete [] buff;
                 }
