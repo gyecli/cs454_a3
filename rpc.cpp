@@ -324,8 +324,8 @@ void GetSelfID()
 
 int rpcInit()
 {
-    GetSelfID(&binderSocket);    
-    ConnectBinder(); 
+    GetSelfID();    
+    ConnectBinder(&binderSocket); 
     //TODO: handle error cases
     return 0; 
 }
