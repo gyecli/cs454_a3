@@ -46,6 +46,8 @@ int BinderDB::SearchServer(Prosig function, ServerLoc *ser)
             *ser = it->second;
             return LOC_SUCCESS; 
         }
+        // TODO: move the ServerLoc to the end of the list
+        // for round-rabin behavior
     }
     return LOC_FAILURE; 
 }

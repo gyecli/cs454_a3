@@ -29,14 +29,13 @@ using namespace std;
 //yiyao
 int binderSocket; 
 int clientSocket; 
-int sockfd;
 char serverID[SIZE_IDENTIFIER];
 char serverPort[SIZE_PORTNO];
 ServerDB serverDatabase; 
 
 //tim
-char server_id[SIZE_IDENTIFIER];
-char server_port[SIZE_PORTNO]; 
+//char server_id[SIZE_IDENTIFIER];
+//char server_port[SIZE_PORTNO]; 
 char rcv_name[SIZE_NAME];
 //char* rcv_argTypes;
 //char** rcv_args; 
@@ -193,10 +192,8 @@ void pack(char* buffer, int** argTypes, void*** args) {
 // Assuming "sockfd" is already assigned
 int connectServer(const char* hostAddr, const char* portno, int *socketnum) 
 {
-
     struct sockaddr_in addr;
     struct hostent *he;
-
     if ( (he = gethostbyname(hostAddr) ) == NULL ) 
     {
         perror("ERROR gethostbyname");
@@ -313,7 +310,12 @@ void GetSelfID()
 
     memcpy(serverID, hostname, SIZE_IDENTIFIER); 
     uint16_t pno = ntohs(addr.sin_port); 
+    cout<<"port nono:"<<pno<<endl;
     memcpy(serverPort, (char*)(&pno), SIZE_PORTNO); 
+
+    cout<<"server id:"<<serverID<<endl;
+    unsigned char* p = (unsigned char*)serverPort; 
+    cout<<"port no:"<<*p<<endl;
 }
 
 int rpcInit()
@@ -376,7 +378,7 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
             int* warning = (int*) warning_buff; 
 
             if(*warning > 0)
-                cout<<"Warning: "<< *warning; 
+                cout<<"Warning: "<< *warning<<endl; 
         }  
         else
         {
@@ -478,6 +480,8 @@ int rpcCall(char* name, int* argTypes, void** args) {
                 return -1; 
             }
 
+            cout<<"connect to server success"<<endl;
+
     		int messageLen = msgLen + getArgsLength(argTypes);  // name, argTypes, args
             requestType = EXECUTE;
 
@@ -565,32 +569,57 @@ void *get_in_addr(struct sockaddr *sa)
 //////////////////////////////////////////////////////////////////////////////////////////
 // server calls rpcExecute: wait for and receive request 
 // forward them to skeletons, and send back teh results
-int rpcExecute(void) {
-    fd_set readfds; 
-    char* buff; 
+int rpcExecute(void) 
+{
+    fd_set read_fds;  // temp file descriptor list for select()
+    int max_sd, sd, new_socket, valread;        // maximum file descriptor number
+    socklen_t addrlen;
+    struct sockaddr_in addr;
+    char size_buff[4];
+    char type_buff[4];
+    char* buff;
+    int clients_sockets[MAX_CLIENTS] = {0};
+
+    FD_ZERO(&master);    // clear the master and temp sets
+    FD_ZERO(&read_fds);
+
+    // add the clientSocket to the master set
+    FD_SET(clientSocket, &master);
+    FD_SET(binderSocket, &master);    // TO_DO: can i just add the binderSocket to the set and then listen on it?
+
+    // keep track of the biggest file descriptor
+    max_sd = max(clientSocket, binderSocket); // so far, it's this one
+
+    cout << "In rpcExecute(), clientSocket = " << clientSocket << endl;
+    cout << "In rpcExecute(), binderSocket = " << binderSocket << endl;
 
     while(true)
     {
-        FD_ZERO(&readfds); 
-        FD_SET(master_socket, &readfds); 
-        max_sd = master_socket; 
+        FD_ZERO(&read_fds); 
+        FD_SET(clientSocket, &read_fds); 
+        max_sd = clientSocket; 
 
         for(int i=0; i < MAX_CLIENTS; ++i)
         {
             sd = clients_sockets[i]; 
-            if(sd>0)
-                FD_SET(sd, &readfds); 
+            if(sd > 0)
+                FD_SET(sd, &read_fds); 
             if(sd>max_sd)
                 max_sd = sd; 
         }
 
-        //selct blocks until there's an activity
-        activity = select(max_sd+1, &readfds, NULL, NULL, NULL); 
+        read_fds = master; // copy it
 
-        //incoming connection
-        if(FD_ISSET(master_socket, &readfds))
+        if (select(max_sd + 1, &read_fds, NULL, NULL, NULL) == -1) 
         {
-            if((new_socket  = accept(master_socket, (struct sockaddr*)&addr, (socklen_t*)&addrlen))<0)
+            cerr << "ERROR in select in rpcExecute()" << endl;
+            exit(4);
+        }
+        
+        //incoming connection
+        if(FD_ISSET(clientSocket, &read_fds))
+        {
+            if((new_socket  = accept(clientSocket, (struct sockaddr*)&addr, (socklen_t*)&addrlen))<0)
             {
                 error("ERROR accept new socket");
             }
@@ -605,40 +634,50 @@ int rpcExecute(void) {
             }
         }
 
-        for(int i=0; i<MAX_CLIENTS; ++i)
+        // run through the existing connections looking for data to read
+        for(int j = 0; j < MAX_CLIENTS; ++j)
         {
-            sd = clients_sockets[i]; 
-            if(FD_ISSET(sd, &readfds))
-            {
-                valread = read(sd, size_buff, 4);
-
-                if(valread == 0)
+            sd = clients_sockets[j]; 
+            if (FD_ISSET(sd, &read_fds)) 
+            { 
+                // we got one!!
+                if (sd == clientSocket && terminate_flag == 0) 
                 {
-                    getpeername(sd, (struct sockaddr*)&addr, (socklen_t*)&addrlen);
-                    close(sd);
-                    clients_sockets[i]=0; 
-                }
-                else
-                {
-                    uint32_t *size = (uint32_t*)size_buff; 
-                    valread = read(sockfd, type_buff, 4);
-                    uint32_t *type = (uint32_t*)type_buff;
+                        valread = read(sd, size_buff, 4);
 
-                    if(*type == EXECUTE)
+                    if(valread == 0)
                     {
-                        buff = new char[size - 8];
+                        getpeername(sd, (struct sockaddr*)&addr, (socklen_t*)&addrlen);
+                        close(sd);
+                        clients_sockets[j]=0; 
                     }
-                }
-            }
-        }
-    }
+                    else
+                    {
+                        cout<<"received something from rpcExecute"<<endl;
+                        uint32_t *size = (uint32_t*)size_buff; 
+                        valread = read(sd, type_buff, 4);
+                        uint32_t *type = (uint32_t*)type_buff;
 
-    close(master_socket);
-    return 0;
+                        if(*type == EXECUTE)
+                        {
+                            //buff = new char[size - 8];
+                        }
+                    }
+                } 
+            } 
+        } 
+
+        if (terminate_flag == 1) {
+            break; // break for(;;)
+        }
+
+    } // END for(;;)--and you thought it would never end!
+    return 0; 
 }
 
 // when received request from clients, do the execution here
-static void* execute(void* arguments) {
+static void* execute(void* arguments) 
+{
     struct arg_struct *args = (struct arg_struct *)arguments;
 
     skeleton skel_func;

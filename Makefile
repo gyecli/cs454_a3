@@ -2,7 +2,7 @@ requirements: librpc.a binder
 
 test: test_server.run test_client.run binder
 
-librpc.a: rpc.cpp server_loc.cpp prosig.cpp helper.cpp serverDB.cpp
+librpc.a: rpc.cpp server_loc.cpp prosig.cpp helper.cpp serverDB.cpp binderDB.cpp
 	g++ -Wall -c -o rpc.o rpc.cpp
 	g++ -Wall -c -o prosig.o prosig.cpp
 	g++ -Wall -c -o helper.o helper.cpp
