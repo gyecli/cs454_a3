@@ -22,7 +22,7 @@
 
 using namespace std;
 
-BinderDB db;
+BinderDB binder_database;
 
 int binderRegister(char* received, int size, int sockfd)
 {
@@ -42,7 +42,7 @@ int binderRegister(char* received, int size, int sockfd)
 
     Prosig pro = MakePro(name, argTypes);
     ServerLoc ser = ServerLoc(server_id, portno);
-    int result = db.Register(pro, ser, sockfd); 
+    int result = binder_database.Register(pro, ser, sockfd); 
 
     return result; 
 }
@@ -54,7 +54,7 @@ int Loc_Request(char* received, int size, ServerLoc *ser)
     memcpy(name, received, SIZE_NAME);
     memcpy(argTypes, received + SIZE_NAME, size - SIZE_NAME);
     Prosig function = MakePro(name, (int*)argTypes);
-    int result = db.SearchServer(function, ser);
+    int result = binder_database.SearchServer(function, ser);
 
     return result; 
 }
@@ -157,15 +157,10 @@ int main()
                 if(valread == 0)
                 {
                     cout<<"closed server"<<endl;
-                    if (getpeername(sd, (struct sockaddr*)&addr, (socklen_t*)&addrlen) == -1)
-                    {
-                        perror("ERROR getpeername");
-                    }
+                    binder_database.Cleanup(sd);
                     close(sd);
                     sockets[i]=0; 
                     //clear this server in database
-
-
                 }
                 else
                 {

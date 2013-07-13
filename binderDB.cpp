@@ -59,3 +59,14 @@ int BinderDB::SearchServer(Prosig function, ServerLoc *ser)
     }
     return LOC_FAILURE; 
 }
+
+void BinderDB::Cleanup(int sockfd)
+{
+    for(list<Tuple>::iterator it=database.begin(); it!=database.end(); ++it)
+    {
+        if(sockfd == it->third)
+        {
+            database.erase(it);
+        }
+    }
+}

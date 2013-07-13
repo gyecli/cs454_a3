@@ -30,6 +30,7 @@ public:
 
     int Register(Prosig function, ServerLoc ser, int sockfd);
     int SearchServer(Prosig function, ServerLoc *ser);
+    void Cleanup(int sockfd);
 };
 
 #endif
