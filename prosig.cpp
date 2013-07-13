@@ -2,6 +2,11 @@
 #include "const.h"
 #include <string> 
 
+Prosig::Prosig()
+{
+    
+}
+
 Prosig::Prosig(std::string name, int argNum, int* argTypes):name(name),argNum(argNum), argTypes(argTypes)
 {
 }

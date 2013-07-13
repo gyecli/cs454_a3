@@ -4,14 +4,18 @@
 #include "const.h"
 using namespace std; 
 
+Tuple::Tuple(){}
+Tuple::Tuple(Prosig first, ServerLoc second, int third):first(first), second(second), third(third){}
+
+
 //TODO: is there any other type of errors for register?
-int BinderDB::Register(Prosig function, ServerLoc ser)
+int BinderDB::Register(Prosig function, ServerLoc ser, int sockfd)
 {
-    list<ProLoc>::iterator it = SearchHelper(function, ser); 
+    list<Tuple>::iterator it = SearchHelper(function, ser); 
     if(it == database.end())
     {
         //first time for this server to register this function 
-        database.push_back(ProLoc(function, ser));
+        database.push_back(Tuple(function, ser, sockfd));
         return REGISTER_SUCCESS; 
     }
     else
@@ -24,9 +28,9 @@ int BinderDB::Register(Prosig function, ServerLoc ser)
 
 //to find the position in the list
 //where we have the specific function & server info
-list<ProLoc>::iterator BinderDB::SearchHelper(Prosig function, ServerLoc ser)
+list<Tuple>::iterator BinderDB::SearchHelper(Prosig function, ServerLoc ser)
 {
-    for(list<ProLoc>::iterator it=database.begin(); it!=database.end(); ++it)
+    for(list<Tuple>::iterator it=database.begin(); it!=database.end(); ++it)
     {
         if(function == it->first && ser == it->second)
         {
@@ -39,11 +43,15 @@ list<ProLoc>::iterator BinderDB::SearchHelper(Prosig function, ServerLoc ser)
 //search for server given the function prototype 
 int BinderDB::SearchServer(Prosig function, ServerLoc *ser)
 {
-    for(list<ProLoc>::iterator it=database.begin(); it!=database.end(); ++it)
+    for(list<Tuple>::iterator it=database.begin(); it!=database.end(); ++it)
     {
         if(function == it->first)
         {
             *ser = it->second;
+            //move it to the back of the list 
+            Tuple selected = *it; 
+            database.erase(it);
+            database.push_back(selected);
             return LOC_SUCCESS; 
         }
         // TODO: move the ServerLoc to the end of the list

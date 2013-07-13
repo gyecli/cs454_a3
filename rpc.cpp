@@ -316,7 +316,6 @@ void GetSelfID()
 
     memcpy(serverID, hostname, SIZE_IDENTIFIER); 
     uint16_t pno = ntohs(addr.sin_port); 
-    cout<<"port nono:"<<pno<<endl;
     memcpy(serverPort, (char*)(&pno), SIZE_PORTNO); 
 
     cout<<"server id:"<<serverID<<endl;
@@ -498,14 +497,14 @@ int rpcCall(char* name, int* argTypes, void** args) {
     		memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
             memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), args, getArgsLength(argTypes));
 
-/*
+
             // send EXECUTE request to server
     		if (send(sockfd, buffer, messageLen+8, 0) == -1) {
         		cout << "ERROR in sending LOC_REQUEST to Binder" << endl;
                 return -1; 
     		} 
             cout << "Sent EXECUTE request to server" << endl;
-
+/*
             // wait for reply msg from server
             char rcv_buffer1[8]; 
             int numbytes = recv(sockfd, rcv_buffer1, 8, 0);
@@ -610,11 +609,11 @@ int rpcExecute(void)
             sd = clients_sockets[i]; 
             if(sd > 0)
                 FD_SET(sd, &read_fds); 
-            if(sd>max_sd)
+            if(sd > max_sd)
                 max_sd = sd; 
         }
 
-        read_fds = master; // copy it
+        //read_fds = master; // copy it
 
         if (select(max_sd + 1, &read_fds, NULL, NULL, NULL) == -1) 
         {
@@ -644,30 +643,27 @@ int rpcExecute(void)
         for(int j = 0; j < MAX_CLIENTS; ++j)
         {
             sd = clients_sockets[j]; 
-            if (FD_ISSET(sd, &read_fds)) 
-            { 
-                // we got one!!
-                if (sd == clientSocket && terminate_flag == 0) 
+            if ( sd > 0 && FD_ISSET(sd, &read_fds)) 
+            {
+                // we got one!
+                valread = read(sd, size_buff, 4);
+                if(valread == 0)
                 {
-                        valread = read(sd, size_buff, 4);
+                    getpeername(sd, (struct sockaddr*)&addr, (socklen_t*)&addrlen);
+                    close(sd);
+                    clients_sockets[j]=0; 
+                }
+                else
+                {
+                    cout<<"received something from rpcExecute"<<endl;
+                    uint32_t *size = (uint32_t*)size_buff; 
+                    valread = read(sd, type_buff, 4);
+                    uint32_t *type = (uint32_t*)type_buff;
 
-                    if(valread == 0)
+                    if(*type == EXECUTE)
                     {
-                        getpeername(sd, (struct sockaddr*)&addr, (socklen_t*)&addrlen);
-                        close(sd);
-                        clients_sockets[j]=0; 
-                    }
-                    else
-                    {
-                        cout<<"received something from rpcExecute"<<endl;
-                        uint32_t *size = (uint32_t*)size_buff; 
-                        valread = read(sd, type_buff, 4);
-                        uint32_t *type = (uint32_t*)type_buff;
-
-                        if(*type == EXECUTE)
-                        {
-                            //buff = new char[size - 8];
-                        }
+                        cout<<"received EXECUTE"<<endl;
+                        //buff = new char[size - 8];
                     }
                 } 
             } 

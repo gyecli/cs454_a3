@@ -16,6 +16,7 @@ public:
     int argNum; 
     int* argTypes;
 
+    Prosig();
     Prosig(std::string name, int argNum, int* argTypes);
     ~Prosig();
     bool operator==(const Prosig &other) const;
