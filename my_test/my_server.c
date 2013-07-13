@@ -105,8 +105,6 @@ int main(int argc, char *argv[]) {
     else
         printf("failure\n");
 
-      return 0; 
-
     printf("\n\nf1\n");
 
     if(rpcRegister("f1", argTypes1, *f1_Skel) == 0)

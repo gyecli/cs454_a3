@@ -208,6 +208,11 @@ int main()
                             int length = SIZE_IDENTIFIER + SIZE_PORTNO;
                             char* sendChar = new char[8 + length];
 
+                            cout<<"before sending to client"<<endl;
+                            cout<<ser.identifier<<endl;
+                            unsigned short *p = (unsigned short*)ser.portno;
+                            cout<<*p<<endl;
+
                             memcpy(sendChar, (char*)&length, 4); 
                             memcpy(sendChar + 4, (char*)&result, 4);
                             memcpy(sendChar + 8, ser.identifier, SIZE_IDENTIFIER);

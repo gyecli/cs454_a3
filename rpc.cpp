@@ -202,7 +202,8 @@ int connectServer(const char* hostAddr, const char* portno, int *socketnum)
 
     /* copy the network address to sockaddr_in structure */
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(atoi(portno));
+    uint16_t port = htons(*(uint16_t*)portno);
+    addr.sin_port = port;
     memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
     *socketnum = socket(PF_INET, SOCK_STREAM, 0);
 
@@ -211,6 +212,11 @@ int connectServer(const char* hostAddr, const char* portno, int *socketnum)
         perror("ERROR socket");
         exit(-1);
     }
+
+    cout<<"before connection to server"<<endl;
+    cout<<hostAddr<<endl;
+    unsigned short *p = (unsigned short*)portno;
+    cout<<*p<<endl;
 
     if(connect(*socketnum, (struct sockaddr *)&addr, sizeof(addr))<0)
     {
@@ -314,7 +320,7 @@ void GetSelfID()
     memcpy(serverPort, (char*)(&pno), SIZE_PORTNO); 
 
     cout<<"server id:"<<serverID<<endl;
-    unsigned char* p = (unsigned char*)serverPort; 
+    unsigned short* p = (unsigned short*)serverPort; 
     cout<<"port no:"<<*p<<endl;
 }
 
@@ -452,16 +458,16 @@ int rpcCall(char* name, int* argTypes, void** args) {
         {                 
     		// now extract server name (128 bytes) and server port (2 bytes)
             cout << "LOC_SUCCESS in rpcCall()" << endl;
-            buff = new char[*size+10]; 
-            valread = read(sockfd, buff, *size+10);
+            buff = new char[*size]; 
+            valread = read(sockfd, buff, *size);
             if(valread < 0)
             {
                 error("ERROR read from socket, probably due to connection failure");
                 return LOC_FAILURE; 
             }
 
-    		char server_id[SIZE_IDENTIFIER];
-    		char server_port[SIZE_PORTNO]; 
+    		char server_id[SIZE_IDENTIFIER + 1] = {0};
+    		char server_port[SIZE_PORTNO + 1] = {0}; 
     		memcpy(server_id, buff, SIZE_IDENTIFIER); 
     		memcpy(server_port, buff+SIZE_IDENTIFIER, SIZE_PORTNO); 
 
