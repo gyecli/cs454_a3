@@ -59,8 +59,9 @@ struct arg_struct {
 };
 
 
-void* execute(void* arguments);  // Prototype
-//void execute(char* name, int *argTypes, void** args, int sock); 
+
+static void* execute(void* arguments);  // Prototype
+
 //////////////////////////////////////////////////////////////////////////////////////////
 int calculate_num(char* buffer)
 {
@@ -762,15 +763,15 @@ int rpcExecute(void) {
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-void print (void** args) {
-    
-    cout << "arg 1: " << (int *)args[0] << endl;
-    cout << "arg 2: " << (int *)args[1] << endl;
+
+static void print (void** args) {
+    cout << "arg 1: " << *(int *)args[1] << endl;
+    cout << "arg 2: " << *(int *)args[2] << endl;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // when received request from clients, do the execution here
-void* execute(void* arguments) {
+static void* execute(void* arguments) {
     cout << "\nEntering execute()..." << endl;
     //struct arg_struct *args = (struct arg_struct *)arguments;
     //cout << "name " << (string)args->name << endl;
@@ -781,6 +782,7 @@ void* execute(void* arguments) {
     char * name = buf; 
     int* argTypes = (int*)(buf+ SIZE_NAME);
     void** args = (void**)(buf+SIZE_NAME+getTypeLength(argTypes)); 
+
 
     skeleton skel_func;
     int exeResult = EXECUTE_FAILURE;    
