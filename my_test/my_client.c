@@ -19,7 +19,7 @@ int main() {
   int a0 = 5;
   int b0 = 10;
   int count0 = 3;
-  int return0;
+  int return0 = 11;           // TO_DO: for testing (original: int return0;)
   int argTypes0[count0 + 1];
   void **args0;
 
@@ -100,6 +100,7 @@ int main() {
   args4[0] = (void *)a4;
 
   /* rpcCalls */
+  printf("First time to call rpcCall() in my_client.c\n");
   int s0 = rpcCall("f0", argTypes0, args0);
   /* test the return f0 */
   printf("\nEXPECTED return of f0 is: %d\n", a0 + b0);

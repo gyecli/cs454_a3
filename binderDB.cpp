@@ -22,8 +22,6 @@ int BinderDB::Register(Prosig function, ServerLoc ser)
     }
 }
 
-using namespace std; 
-
 //to find the position in the list
 //where we have the specific function & server info
 list<ProLoc>::iterator BinderDB::SearchHelper(Prosig function, ServerLoc ser)

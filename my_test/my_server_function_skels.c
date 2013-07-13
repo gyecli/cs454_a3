@@ -1,9 +1,15 @@
 #include "my_server_functions.h"
+#include <iostream>
 #include <stdio.h>
 #include <string.h>
 
+using namespace std;
+
 int f0_Skel(int *argTypes, void **args) {
 
+  cout << "Got into f0_Skel fn... " << endl;
+  //cout << "arg 1: " << *(int *)args[1] << endl;
+  //cout << "arg 2: " << *(int *)args[2] << endl;
   *(int *)args[0] = f0(*(int *)args[1], *(int *)args[2]);
   return 0;
 }

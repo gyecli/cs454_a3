@@ -38,6 +38,11 @@ int binderRegister(char* received, int size)
     memcpy(portno, received + SIZE_IDENTIFIER, SIZE_PORTNO); 
     memcpy(name, received + SIZE_IDENTIFIER + SIZE_PORTNO, SIZE_NAME); 
     
+    cout << "server_id: " << string(server_id) << endl;
+    unsigned short *p = (unsigned short*) portno; 
+    cout << "portno: " << *p << endl;
+
+
     int used_size = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME; 
     char* buff = new char[size - used_size]; 
     memcpy(buff, received + used_size, size - used_size);
@@ -50,14 +55,14 @@ int binderRegister(char* received, int size)
     //return 0;   // TODO: havn't figured out return type 
 }
 
-int Loc_Request(char* received, int size, ServerLoc *ser)
+int Loc_Request(char* received, int size, ServerLoc *ser)  // TODO: changed "*ser" into "**ser" by tim
 {
     char name[SIZE_NAME];
     char* argTypes = new char[size - SIZE_NAME];
     memcpy(name, received, SIZE_NAME);
     memcpy(argTypes, received + SIZE_NAME, size - SIZE_NAME);
     Prosig function = MakePro(name, (int*)argTypes);
-    int result = db.SearchServer(function, ser);
+    int result = db.SearchServer(function, ser);           // TODO: (by Tim) changed "ser" into "*ser"
 
     return result; 
 }
@@ -184,15 +189,17 @@ int main()
                         {
                             //only return REGISTER_SUCCESS, nothing else    
                             //cout << "TESTING: REGISTER_SUCCESS in binder.cpp" << endl;  // TO_DO                        
-                            uint32_t length = 0; 
+                            uint32_t length = 4;                // TODO: (by tim), not 0. there is still an integer following type, so 4
                             char* sendChar = new char[8 + length];
                             char lengthChar[4]; 
                             char resultChar[4]; 
+                            uint32_t warning = 0;                // TODO: by tim
                             //int2char4(length, lengthChar);
                             //int2char4(result, resultChar); 
                             memcpy(sendChar, (char*)&length, 4); 
-                            memcpy(sendChar, (char*)&result, 4);
-                            send(sd, sendChar, 8, 0); 
+                            memcpy(sendChar+4, (char*)&result, 4);
+                            memcpy(sendChar+8, (char*)&warning, 4);
+                            send(sd, sendChar, length+8, 0); 
                         }
                         else if(result != REGISTER_SUCCESS)
                         {
@@ -230,7 +237,9 @@ int main()
                             memcpy(sendChar + 8, ser.identifier, SIZE_IDENTIFIER);
                             memcpy(sendChar + 8 + SIZE_IDENTIFIER, ser.portno, SIZE_PORTNO); 
 
-                            send(sd, sendChar, length + 8, 0);
+                            if (send(sd, sendChar, length + 8, 0) <= 0) {
+                                cerr << "ERROR in sending serverID and port to client" << endl;
+                            }
                         }
                         else if(result != LOC_SUCCESS)
                         {

@@ -14,5 +14,5 @@ public:
 	std::list<ProSer> database; 
 
 	void Add(char* name, int* argTypes, skeleton location); 
-	skeleton SearchSkeleton(char* name, int* argTypes);
+	bool SearchSkeleton(char* name, int* argTypes, skeleton *skel_result);
 };
