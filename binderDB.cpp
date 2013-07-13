@@ -23,14 +23,13 @@ int BinderDB::Register(Prosig function, ServerLoc ser)
     }
 }
 
-using namespace std; 
 
 //to find the position in the list
 //where we have the specific function & server info
 list<ProLoc>::iterator BinderDB::SearchHelper(Prosig function, ServerLoc ser)
 {
-    int i=0; 
-    for(list<ProLoc>::iterator it=database.begin(); it!=database.end(); ++it)
+    int i = 0; 
+    for(list<ProLoc>::iterator it = database.begin(); it != database.end(); ++it)
     {
         cout<<i<<endl;
         ++i;
@@ -56,11 +55,11 @@ list<ProLoc>::iterator BinderDB::SearchHelper(Prosig function, ServerLoc ser)
 
         if(function == it->first && ser == it->second)
         {
-            std::cout<<"found"<<std::endl; 
+            cout << "found" << endl; 
             return it; 
         }
     }
-    std::cout<<"not found"<<std::endl<<endl; 
+    cout << "not found" << endl << endl; 
     return database.end(); 
 }
 
@@ -75,6 +74,8 @@ int BinderDB::SearchServer(Prosig function, ServerLoc *ser)
             *ser = it->second;
             return LOC_SUCCESS; 
         }
+        // TODO: move the ServerLoc to the end of the list
+        // for round-rabin behavior
     }
     cout<<"not foound function loc"<<endl;
 
