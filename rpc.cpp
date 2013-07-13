@@ -213,16 +213,13 @@ int connectServer(const char* hostAddr, const char* portno, int *socketnum)
         exit(-1);
     }
 
-    cout<<"before connection to server"<<endl;
-    cout<<hostAddr<<endl;
-    unsigned short *p = (unsigned short*)portno;
-    cout<<*p<<endl;
-
     if(connect(*socketnum, (struct sockaddr *)&addr, sizeof(addr))<0)
     {
         perror("ERROR connect");
         exit(-1);
     }
+
+    cout<<"inside connectServer function, sockfd:" << *socketnum << endl; 
 
     return 0; //TO-DO change return value, to indicate error
 }
@@ -473,37 +470,42 @@ int rpcCall(char* name, int* argTypes, void** args) {
             //cout<<"id:"<<string(server_id)<<endl;
             //cout<<"port:" << string(server_port) <<endl;
 
+            delete [] buff; 
     		close(sockfd);    // close socket between client and binder
 
-            cout<<"before connect to server:"<<endl;
-            unsigned short *p = (unsigned short*) server_port;
-            cout<<server_id<<endl<<*p<<endl;
-
+            int server_sock; 
             // Now connect to target server
-    		if (connectServer(server_id, server_port, &sockfd) < 0) {
+    		if (connectServer(server_id, server_port, &server_sock) < 0) {
                 cout << "ERROR in connecting to server" << endl;
+                cout << "error sockfd: " << server_sock << endl; 
+
                 return -1; 
             }
 
+            cout << "sockfd: " << server_sock << endl; 
+
             cout<<"connect to server success"<<endl;
 
-    		int messageLen = msgLen + getArgsLength(argTypes);  // name, argTypes, args
+    		int messageLen = msgLen;  // name, argTypes, args
+            cout<< "client size: " << messageLen << endl; 
             requestType = EXECUTE;
+            buff = new char[8 + messageLen + 2];
+            memset(buff, 0, 10 + messageLen); 
 
-    		char buffer[8 + messageLen];
-    		memcpy(buffer, (char *) &messageLen, 4);
-    		memcpy(buffer+4, (char *) &requestType, 4);
-    		memcpy(buffer+8, name, SIZE_NAME); 
-    		memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
-            memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), args, getArgsLength(argTypes));
-
+    		memcpy(buff, (char *) &messageLen, 4);
+    		memcpy(buff+4, (char *) &requestType, 4);
+    		//memcpy(buff+8, name, SIZE_NAME); 
+    		//memcpy(buff+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
+            //memcpy(buff+8+SIZE_NAME + getTypeLength(argTypes), args, getArgsLength(argTypes));
 
             // send EXECUTE request to server
-    		if (send(sockfd, buffer, messageLen+8, 0) == -1) {
-        		cout << "ERROR in sending LOC_REQUEST to Binder" << endl;
+    		if (send(server_sock, buff, messageLen + 8, 0) != 0) {
+        		cout << "ERROR in sending EXECUTE to Server" << endl;
                 return -1; 
     		} 
             cout << "Sent EXECUTE request to server" << endl;
+
+            close(server_sock); 
 /*
             // wait for reply msg from server
             char rcv_buffer1[8]; 
@@ -613,8 +615,6 @@ int rpcExecute(void)
                 max_sd = sd; 
         }
 
-        //read_fds = master; // copy it
-
         if (select(max_sd + 1, &read_fds, NULL, NULL, NULL) == -1) 
         {
             cerr << "ERROR in select in rpcExecute()" << endl;
@@ -649,22 +649,33 @@ int rpcExecute(void)
                 valread = read(sd, size_buff, 4);
                 if(valread == 0)
                 {
-                    getpeername(sd, (struct sockaddr*)&addr, (socklen_t*)&addrlen);
+                    //getpeername(sd, (struct sockaddr*)&addr, (socklen_t*)&addrlen);
                     close(sd);
                     clients_sockets[j]=0; 
                 }
                 else
                 {
-                    cout<<"received something from rpcExecute"<<endl;
+                    //cout<<"received something from rpcExecute"<<endl;
                     uint32_t *size = (uint32_t*)size_buff; 
+                    cout << "size:" << *size << endl; 
                     valread = read(sd, type_buff, 4);
                     uint32_t *type = (uint32_t*)type_buff;
 
                     if(*type == EXECUTE)
                     {
                         cout<<"received EXECUTE"<<endl;
-                        //buff = new char[size - 8];
+                        buff = new char[*size];
+                        valread = read(sd, buff, *size);
+                        cout << "value read: "<<valread<<endl; 
                     }
+                    else
+                    {
+                        cout << "received type "<< *type <<endl;
+                        valread = read(sd, buff, *size);
+                        cout << "value read: "<<valread<<endl; 
+                    }
+
+                    delete [] buff;
                 } 
             } 
         } 
