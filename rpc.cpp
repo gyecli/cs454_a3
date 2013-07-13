@@ -310,12 +310,10 @@ void GetSelfID()
 
     memcpy(serverID, hostname, SIZE_IDENTIFIER); 
     uint16_t pno = ntohs(addr.sin_port); 
-    cout<<"port nono:"<<pno<<endl;
     memcpy(serverPort, (char*)(&pno), SIZE_PORTNO); 
 
     cout<<"server id:"<<serverID<<endl;
-    unsigned char* p = (unsigned char*)serverPort; 
-    cout<<"port no:"<<*p<<endl;
+    cout<<"port nono:"<<pno<<endl;
 }
 
 int rpcInit()

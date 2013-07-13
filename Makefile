@@ -1,28 +1,30 @@
+CC := g++ -ggdb -Wall
+
 requirements: librpc.a binder
 
 test: test_server.run test_client.run binder
 
 librpc.a: rpc.cpp server_loc.cpp prosig.cpp helper.cpp serverDB.cpp binderDB.cpp
-	g++ -Wall -c -o rpc.o rpc.cpp
-	g++ -Wall -c -o prosig.o prosig.cpp
-	g++ -Wall -c -o helper.o helper.cpp
-	g++ -Wall -c -o server_loc.o server_loc.cpp
-	g++ -Wall -c -o serverDB.o serverDB.cpp
-	g++ -Wall -c -o binderDB.o binderDB.cpp
+	$(CC) -c -o rpc.o rpc.cpp
+	$(CC) -c -o prosig.o prosig.cpp
+	$(CC) -c -o helper.o helper.cpp
+	$(CC) -c -o server_loc.o server_loc.cpp
+	$(CC) -c -o serverDB.o serverDB.cpp
+	$(CC) -c -o binderDB.o binderDB.cpp
 	ar rvs librpc.a rpc.o prosig.o helper.o server_loc.o serverDB.o binderDB.o
 
 binder: librpc.a binder.cpp
-	g++ -Wall -L. binder.cpp -lrpc -o binder
+	$(CC) -L. binder.cpp -lrpc -o binder
 
 test_server.run: librpc.a my_test/my_server.c my_test/my_server_functions.c my_test/my_server_function_skels.c
-	g++ -Wall -c -o server_functions.o my_test/my_server_functions.c
-	g++ -Wall -c -o server_function_skels.o my_test/my_server_function_skels.c
-	g++ -Wall -c -o server.o my_test/my_server.c
-	g++ -Wall -L. server_functions.o server_function_skels.o server.o -lrpc -o $@
+	$(CC) -c -o server_functions.o my_test/my_server_functions.c
+	$(CC) -c -o server_function_skels.o my_test/my_server_function_skels.c
+	$(CC) -c -o server.o my_test/my_server.c
+	$(CC) -L. server_functions.o server_function_skels.o server.o -lrpc -o $@
 
 test_client.run: librpc.a my_test/my_client.c
-	g++ -Wall -c -o client.o my_test/my_client.c
-	g++ -Wall -L. client.o -lrpc -o $@
+	$(CC) -c -o client.o my_test/my_client.c
+	$(CC) -L. client.o -lrpc -o $@
 
 
 .PHONY: clean
