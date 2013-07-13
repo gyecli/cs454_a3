@@ -313,96 +313,10 @@ int rpcCall(char* name, int* argTypes, void** args) {
     int valread;
     char size_buff[4];
     char type_buff[4];
-
-////////
-    char *temp_server = "v1410-wn-172-21-41-112.campus-dynamic.uwaterloo.ca";
-    char *temp_port = "58747";
-            
-            if (connectServer(temp_server, temp_port, &sockfd) < 0) {
-                cout << "ERROR in connecting to server" << endl;
-                return -1; 
-            }
-
-    cout << "Successfully connected to server" << endl;
-            
-            int messageLen = SIZE_NAME + getTypeLength(argTypes) + getArgsLength(argTypes);  // name, argTypes, args
-            int requestType = EXECUTE;
-
-            char * buffer = new char[8+messageLen];
-            memset(buffer, '\0', 8+messageLen); 
-            memcpy(buffer, (char *) &messageLen, 4);
-            memcpy(buffer+4, (char *) &requestType, 4);
-            memcpy(buffer+8, name, SIZE_NAME); 
-            memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
-            memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), args, getArgsLength(argTypes));
-
-            write(sockfd, (void*)buffer, 8+messageLen);     // send EXE request to server
-
-            // wait for reply msg from Server
-            valread = read(sockfd, size_buff, 4);       // get size
-            uint32_t *rpy_size = (uint32_t*)size_buff; 
-
-            cout << "(In rpcCall(), Got sth back from server--size of message: " << *rpy_size << endl;
-
-            if(valread < 0)
-            {
-                error("ERROR read from socket, probably due to connection failure");
-                return RPCCALL_FAILURE;         // TO_DO: should put a LOC_
-            }
-            else if(valread == 0)
-            {
-                //TODO figure out the error case
-                return LOC_FAILURE; 
-            }
-            else 
-            {
-                valread = read(sockfd, type_buff, 4);       // get type
-                int *rpy_type = (int *)type_buff;
-
-                if (*rpy_type == EXECUTE_SUCCESS) {
-                    // 
-                    buff = new char[*rpy_size];             // name + argTypes + args
-                    valread = read(sockfd, buff, *rpy_size);
-
-                    if(valread < 0)
-                    {
-                        error("ERROR read from socket, probably due to connection failure");
-                        return RPCCALL_FAILURE; 
-                    }
-
-                    
-                    //pack(buff, &new_argTypes, &new_args);
-                    int len_type = getTypeLength(argTypes);
-                    //int len_args = getArgsLength(argTypes);
-
-                    memcpy(argTypes, buff+100, len_type);           // skip name
-                    memcpy(args, buff+100+len_type, (*rpy_size)-100-len_type);
-
-                    close(sockfd);
-                } else if (*rpy_type == EXECUTE_FAILURE) 
-                {
-                    return RPCCALL_FAILURE;
-                } else {
-                    cout << "should not come here " << endl;
-                    return -10;
-                }
-            }
-//////
-
-
-
-/*
-    cout << "Connecting to Binder ...." << endl;
-
     ConnectBinder(&sockfd);
 
-    cout << "Successfully connected to Binder" << endl;
     // send LOC_REQUEST message to Binder
     int msgLen = (SIZE_NAME + getTypeLength(argTypes));  // name, argTypes
-<<<<<<< HEAD
-=======
-    cout<<"length: " << msgLen << endl; 
->>>>>>> master
 
     char send_buff[msgLen + 8];
     unsigned int requestType = LOC_REQUEST;
@@ -417,11 +331,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
         cerr << "ERROR in sending LOC_REQUEST to Binder" << endl;
     } 
 
-<<<<<<< HEAD
     // wait for reply msg from Binder
-=======
-    // wait for reply msg from Binder    
->>>>>>> master
     valread = read(sockfd, size_buff, 4);
 
     if(valread < 0)
@@ -440,184 +350,70 @@ int rpcCall(char* name, int* argTypes, void** args) {
         valread = read(sockfd, type_buff, 4);
         uint32_t *type = (uint32_t*)type_buff;
 
-        cout << "size: " << *size << endl;
-        cout << "type: " << *type << endl;
-
-    	if (*type == LOC_SUCCESS) 
+        if (*type == LOC_SUCCESS) 
         {                 
-    		// now extract server name (128 bytes) and server port (2 bytes)
+            // now extract server name (128 bytes) and server port (2 bytes)
             cout << "LOC_SUCCESS in rpcCall()" << endl;
-<<<<<<< HEAD
             buff = new char[*size]; 
             valread = read(sockfd, buff, *size);
-=======
-            buff = new char[*size+10];              // TODO why put 10 here?
-            valread = read(sockfd, buff, *size+10);
->>>>>>> master
             if(valread < 0)
             {
                 error("ERROR read from socket, probably due to connection failure");
                 return LOC_FAILURE; 
             }
 
-    		char server_id[SIZE_IDENTIFIER + 1] = {0};
-    		char server_port[SIZE_PORTNO + 1] = {0}; 
-    		memcpy(server_id, buff, SIZE_IDENTIFIER); 
-    		memcpy(server_port, buff+SIZE_IDENTIFIER, SIZE_PORTNO); 
+            char server_id[SIZE_IDENTIFIER + 1] = {0};
+            char server_port[SIZE_PORTNO + 1] = {0}; 
+            memcpy(server_id, buff, SIZE_IDENTIFIER); 
+            memcpy(server_port, buff+SIZE_IDENTIFIER, SIZE_PORTNO); 
 
             //cout<<"id:"<<string(server_id)<<endl;
             //cout<<"port:" << string(server_port) <<endl;
 
-    		close(sockfd);    // close socket between client and binder
+            close(sockfd);    // close socket between client and binder
 
             cout<<"before connect to server:"<<endl;
             unsigned short *p = (unsigned short*) server_port;
             cout<<server_id<<endl<<*p<<endl;
 
             // Now connect to target server
-            cout << "Connecting to server ...." << endl;
-            char *temp_server = "cs-auth-mc-129-97-141-182.dynamic.uwaterloo.ca";
-            char *temp_port = "53357";
-    		if (connectServer(server_id, server_port, &sockfd) < 0) {
+            if (connectServer(server_id, server_port, &sockfd) < 0) {
                 cout << "ERROR in connecting to server" << endl;
                 return -1; 
             }
 
-<<<<<<< HEAD
             cout<<"connect to server success"<<endl;
 
-    		int messageLen = msgLen + getArgsLength(argTypes);  // name, argTypes, args
-=======
-            cout << "Successfully connected to server" << endl;
-    		
             int messageLen = msgLen + getArgsLength(argTypes);  // name, argTypes, args
->>>>>>> master
             requestType = EXECUTE;
 
-    		char buffer[8 + messageLen];
-    		memcpy(buffer, (char *) &messageLen, 4);
-    		memcpy(buffer+4, (char *) &requestType, 4);
-    		memcpy(buffer+8, name, SIZE_NAME); 
-    		memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
+            char buffer[8 + messageLen];
+            memcpy(buffer, (char *) &messageLen, 4);
+            memcpy(buffer+4, (char *) &requestType, 4);
+            memcpy(buffer+8, name, SIZE_NAME); 
+            memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
             memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), args, getArgsLength(argTypes));
 
-<<<<<<< HEAD
-
-=======
-            write(sockfd, (void*)buffer, 8+messageLen);
-
-            // wait for reply msg from Binder
-            valread = read(sockfd, size_buff, 4);
-
-            if(valread < 0)
-            {
-                error("ERROR read from socket, probably due to connection failure");
-                return RPCCALL_FAILURE;         // TO_DO: should put a LOC_
-            }
-            else if(valread == 0)
-            {
-                //TODO figure out the error case
-                return LOC_FAILURE; 
-            }
-            else 
-            {
-                uint32_t *rpy_size = (uint32_t*)size_buff; 
-                valread = read(sockfd, type_buff, 4);
-                uint32_t *rpy_type = (uint32_t*)type_buff;
-
-                if (*rpy_type == EXECUTE_SUCCESS) {
-                    // 
-                    buff = new char[*rpy_size];      //
-                    valread = read(sockfd, buff, *rpy_size);
-                    if(valread < 0)
-                    {
-                        error("ERROR read from socket, probably due to connection failure");
-                        return RPCCALL_FAILURE; 
-                    }
-
-                    int * new_argTypes;
-                    void** new_args;
-                    pack(buff, &new_argTypes, &new_args);
-
-                    memcpy(args, new_args, getArgsLength(new_argTypes));
-
-                    close(sockfd);
-                } else if (*rpy_type == EXECUTE_FAILURE) 
-                {
-                    return RPCCALL_FAILURE;
-                } else {
-                    cout << "should not come here " << endl;
-                    return -10;
-                }
-            }
-*/
-    
-
-/*
->>>>>>> master
             // send EXECUTE request to server
-    		if (send(sockfd, buffer, messageLen+8, 0) == -1) {
-        		cout << "ERROR in sending LOC_REQUEST to Binder" << endl;
+            if (send(sockfd, buffer, messageLen+8, 0) == -1) 
+            {
+                cout << "ERROR in sending LOC_REQUEST to Binder" << endl;
                 return -1; 
-    		} 
+            } 
             cout << "Sent EXECUTE request to server" << endl;
-/*
-            // wait for reply msg from server
-            char rcv_buffer1[8]; 
-            int numbytes = recv(sockfd, rcv_buffer1, 8, 0);
-            if (numbytes < 0) {
-                cerr << "ERROR in recving LOC reply from Binder" << endl;
-                exit(1); 
-            } else {
-                // extract first 8 bytes from Server
-                char rcv_len[4];
-                char rcv_type[4]; 
-                memcpy(rcv_len, rcv_buffer1, 4); 
-                memcpy(rcv_type, rcv_buffer1+4, 4); 
 
-                len = atoi(rcv_len);
-                type = atoi(rcv_type);
-                
-                if (type == EXECUTE_SUCCESS) {         
-                    
-                    char rcv_buffer2[len];
-                    if (recv(sockfd, rcv_buffer2, len, 0) < 0) {
-
-                    }
-                    //
-                    int *new_argTypes;
-                    void** new_args; 
-                    pack(rcv_buffer2, &new_argTypes, &new_args); 
-
-                    memcpy(args, new_args, getArgsLength(argTypes));
-
-                    close(sockfd);  
-
-                    return RPCCALL_SUCCESS;
-                } else if (type == EXECUTE_FAILURE) {
-                    cout << "EXECUTE FAILURE" << endl;
-                    return RPCCALL_FAILURE;           // TO_DO: should return EXECUTE_FAILURE??
-                } else {
-                    cout << "Should not come here 1" << endl;
-                    return -10;             // TO_DO: haven't been determined
-                }
-            }
-*/
-
-/*
-    	} 
+        } 
         else if (*type == LOC_FAILURE) 
         {
             cout << "LOC FAILURE" << endl;
             return RPCCALL_FAILURE;         // TO_DO: should return EXECUTE_FAILURE??
-    	} 
+        } 
         else 
         {
             cout << "Shoudl not come here 2" << endl; 
             return -10;             // TO_DO: haven't been determined
         }
     }
-*/
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -634,6 +430,8 @@ void *get_in_addr(struct sockaddr *sa)
 //////////////////////////////////////////////////////////////////////////////////////////
 // server calls rpcExecute: wait for and receive request 
 // forward them to skeletons, and send back teh results
+
+
 int rpcExecute(void) 
 {
     fd_set read_fds;  // temp file descriptor list for select()
@@ -655,8 +453,6 @@ int rpcExecute(void)
     // keep track of the biggest file descriptor
     max_sd = max(clientSocket, binderSocket); // so far, it's this one
 
-    std::list<pthread_t> thread_list;
-
     cout << "In rpcExecute(), clientSocket = " << clientSocket << endl;
     cout << "In rpcExecute(), binderSocket = " << binderSocket << endl;
 
@@ -674,6 +470,8 @@ int rpcExecute(void)
             if(sd > max_sd)
                 max_sd = sd; 
         }
+
+        //read_fds = master; // copy it
 
         if (select(max_sd + 1, &read_fds, NULL, NULL, NULL) == -1) 
         {
@@ -703,7 +501,6 @@ int rpcExecute(void)
         for(int j = 0; j < MAX_CLIENTS; ++j)
         {
             sd = clients_sockets[j]; 
-
             if ( sd > 0 && FD_ISSET(sd, &read_fds)) 
             {
                 // we got one!
@@ -720,56 +517,23 @@ int rpcExecute(void)
                     uint32_t *size = (uint32_t*)size_buff; 
                     valread = read(sd, type_buff, 4);
                     uint32_t *type = (uint32_t*)type_buff;
-                    buff = new char[*size];
 
                     if(*type == EXECUTE)
                     {
                         cout<<"received EXECUTE"<<endl;
                         //buff = new char[size - 8];
-                        if (recv(sd, buff, *size, 0) < 0) 
-                        {      // rcvMsg = name + argTypes + args
-                                cerr << "ERROR in receiving msg from client" << endl;
-                        }
-
-                        int n = calculate_num(buff+100); 
-                        int args_len = *size - 100 - n*4;                           
-                    
-                        cout << "len n args_len: " << *size << " " << n << " " << args_len << endl;
-
-                        specialSock = sd; 
-                        cout << "hello" << endl;
-                        // TODO: still need the definition of search_skel()
-
-                        char * new_buf = new char[*size];
-                        memcpy(new_buf, buff, *size); 
-
-                        pthread_t newThread; 
-                        thread_list.push_back(newThread); 
-                        if (pthread_create(&newThread, NULL, execute, (void*)new_buf)) 
-                        {
-                            cerr << "ERROR in creating new thread" << endl;
-                        }
-                    }
-                    if(*type == TERMINATE)
-                    {
-                        terminate_flag = 1;
-                        break; 
                     }
                 } 
             } 
         } 
-        if (terminate_flag == 1) 
-        {
+
+        if (terminate_flag == 1) {
             break; // break for(;;)
         }
-    }
-    for (std::list<pthread_t>::iterator it = thread_list.begin(); it != thread_list.end(); it++) 
-    {
-        pthread_join(*it, NULL); // TO_DO: use NULL or some other status?
-    } 
+
+    } // END for(;;)--and you thought it would never end!
     return 0; 
 }
-
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
