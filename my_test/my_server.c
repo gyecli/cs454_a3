@@ -76,6 +76,36 @@ int main(int argc, char *argv[]) {
         printf("success\n");
     else
         printf("failure\n");
+      if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+        printf("success\n");
+    else
+        printf("failure\n");
+      if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+        printf("success\n");
+    else
+        printf("failure\n");
+      if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+        printf("success\n");
+    else
+        printf("failure\n");
+      if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+        printf("success\n");
+    else
+        printf("failure\n");
+      if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+        printf("success\n");
+    else
+        printf("failure\n");
+      if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+        printf("success\n");
+    else
+        printf("failure\n");
+      if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+        printf("success\n");
+    else
+        printf("failure\n");
+
+      return 0; 
 
     printf("\n\nf1\n");
 
