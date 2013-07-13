@@ -313,7 +313,6 @@ void GetSelfID()
 
     memcpy(serverID, hostname, SIZE_IDENTIFIER); 
     uint16_t pno = ntohs(addr.sin_port); 
-    cout<<"my own porno:"<<pno<<endl;
     memcpy(serverPort, (char*)(&pno), SIZE_PORTNO); 
 }
 
@@ -414,7 +413,6 @@ int rpcCall(char* name, int* argTypes, void** args) {
 
     // send LOC_REQUEST message to Binder
     int msgLen = (SIZE_NAME + getTypeLength(argTypes));  // name, argTypes
-    cout<<"length:"<<msgLen;
 
     char send_buff[msgLen + 8];
     unsigned int requestType = LOC_REQUEST;
@@ -424,19 +422,13 @@ int rpcCall(char* name, int* argTypes, void** args) {
     memcpy(send_buff + 8, name, SIZE_NAME);                // and then msg = name + argTypes
     memcpy(send_buff + 8 + SIZE_NAME, argTypes, getTypeLength(argTypes)); 
 
-    cout<<"before send"<<endl; 
-
     // send LOC_REQUEST msg to Binder
     if (send(sockfd, send_buff, msgLen + 8, 0) == -1) {
         cerr << "ERROR in sending LOC_REQUEST to Binder" << endl;
     } 
 
-    cout<<"after send, before read"<<endl; 
-
     // wait for reply msg from Binder
     valread = read(sockfd, size_buff, 4);
-        cout<<"after read"<<endl; 
-        cout<<valread<<endl;
 
     if(valread < 0)
     {
@@ -445,7 +437,6 @@ int rpcCall(char* name, int* argTypes, void** args) {
     }
     else if(valread == 0)
     {
-        cout<<"0"<<endl;
         //TODO figure out the error case
         return LOC_FAILURE; 
     }
@@ -454,8 +445,6 @@ int rpcCall(char* name, int* argTypes, void** args) {
         uint32_t *size = (uint32_t*)size_buff; 
         valread = read(sockfd, type_buff, 4);
         uint32_t *type = (uint32_t*)type_buff;
-
-        cout<<"rpcCall here"<<endl;
 
     	if (*type == LOC_SUCCESS) 
         {                 
@@ -577,179 +566,74 @@ void *get_in_addr(struct sockaddr *sa)
 // server calls rpcExecute: wait for and receive request 
 // forward them to skeletons, and send back teh results
 int rpcExecute(void) {
-    //fd_set master;    // master file descriptor list
-    fd_set read_fds;  // temp file descriptor list for select()
-    int fdmax;        // maximum file descriptor number
+    fd_set readfds; 
+    char* buff; 
 
-    int listener;     // listening socket descriptor
-    int newfd;        // newly accept()ed socket descriptor
-    struct sockaddr_storage remoteaddr; // client address
-    socklen_t addrlen;
-    //char hostName[SIZE_IDENTIFIER];   // host name of local machine
+    while(true)
+    {
+        FD_ZERO(&readfds); 
+        FD_SET(master_socket, &readfds); 
+        max_sd = master_socket; 
 
-    int nbytes;
-
-    struct sockaddr_in addr;
-    int s_len;
-
-    int i;
-
-    FD_ZERO(&master);    // clear the master and temp sets
-    FD_ZERO(&read_fds);
-
-    //******************************************************************
-    // get a free port
-    //listener = socket(PF_INET, SOCK_STREAM, 0);
-
-    //if(listener == 0)
-    //{
-    //    cerr << "ERROR listen" << endl;
-    //    exit(-1);
-    //}
-
-    //addr.sin_family = AF_INET;
-    //addr.sin_port = 0;
-    //addr.sin_addr.s_addr = INADDR_ANY;
-    //s_len = sizeof(addr);
-
-    //if(bind(listener, (struct sockaddr *)&addr, sizeof(addr))<0)
-    //{
-    //    cerr << "ERROR bind" << endl;
-    //    exit(-1);
-    //}
-
-    //if(listen(listener, MAX_CLIENTS))  
-    //{
-    //    cerr << "ERROR listen: too many client coneection requests" << endl;
-    //    exit(-1);
-    //}
-
-    //if(getsockname(listener, (struct sockaddr*)&addr, (socklen_t*)&s_len ) == -1)
-    //{
-    //    cerr << "ERROR getsockname" << endl;
-    //    exit(-1);
-    //}
-
-    // add the clientSocket to the master set
-    FD_SET(clientSocket, &master);
-
-    FD_SET(binderSocket, &master);    // TO_DO: can i just add the binderSocket to the set and then listen on it?
-
-    // keep track of the biggest file descriptor
-    fdmax = max(clientSocket, binderSocket); // so far, it's this one
-
-    // main loop
-    std::list<pthread_t> thread_list; 
-
-    cout << "In rpcExecute(), clientSocket = " << clientSocket << endl;
-    cout << "In rpcExecute(), binderSocket = " << binderSocket << endl;
-
-    for(;;) {
-        read_fds = master; // copy it
-        if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
-            cerr << "ERROR in select in rpcExecute()" << endl;
-            exit(4);
+        for(int i=0; i < MAX_CLIENTS; ++i)
+        {
+            sd = clients_sockets[i]; 
+            if(sd>0)
+                FD_SET(sd, &readfds); 
+            if(sd>max_sd)
+                max_sd = sd; 
         }
 
-        // run through the existing connections looking for data to read
-        for(i = 0; i <= fdmax; i++) {
-            if (FD_ISSET(i, &read_fds)) { // we got one!!
-                if (i == clientSocket && terminate_flag == 0) {
-                    // handle new connections
-                    addrlen = sizeof remoteaddr;
-                    newfd = accept(clientSocket, (struct sockaddr *)&remoteaddr, &addrlen);
+        //selct blocks until there's an activity
+        activity = select(max_sd+1, &readfds, NULL, NULL, NULL); 
 
-                    if (newfd == -1) {
-                        cerr << "ERROR in accept in rpcExecute() of rpc.cpp" << endl;
-                    } else {
-                        FD_SET(newfd, &master); // add to master set
-                        if (newfd > fdmax) {    // keep track of the max
-                            fdmax = newfd;
-                        }
-                        cout << "server: new connection on socket " << newfd << endl;
-                    }
-                } else if (terminate_flag == 0) {           
-                    // handle data from a client
-                    char buf[8];    // buffer for client data
-                    cout << "In rpcExecute(), waiting to receive data from clients" << endl;
-                    if ((nbytes = recv(i, buf, sizeof (buf), 0)) <= 0) {        // TO_DO:  should I put "=" here?
-                        // got error or connection closed by client
-                        if (nbytes == 0) {
-                            // connection closed
-                            cout << "selectserver: socket " << i << "hung up" << endl;
-                        } else {
-                            cerr << "recv" << endl;
-                        }
-                        close(i); // bye!
-                        FD_CLR(i, &master); // remove from master set
-                    } else {
-                        // we got some data from a client
-                        cout << "TESTING: in rpcExecute() of rpc.cpp" << endl;
-                        char rcv_len[4];
-                        char rcv_type[4]; 
-                        memcpy(rcv_len, buf, 4); 
-                        memcpy(rcv_type, buf+4, 4); 
-
-                        int len = atoi(rcv_len);  
-                        int type = atoi(rcv_type);
-                        char rcvMsg[len];
-
-                        if (type == TERMINATE) {
-                            // Need to verify Sender's ID (Binder)
-                            // TO_DO: add verification code here
-
-                            // Go to shut-down routine 
-                            terminate_flag = 1; 
-
-                            // break the loop of running through the existing connections looking for data to read
-                            // i.e. stop reading new data
-                            break;  
-                        }
-
-
-                        if (recv(i, rcvMsg, len, 0) < 0) {
-                            cerr << "ERROR in receiving msg from client" << endl;
-                        }
-
-                        char * name = new char[100]; 
-                        memcpy(name, rcvMsg, 100);    // TO-DO: sth wrong here  
-                        char* newRcvMsg = rcvMsg + 100; 
-
-                        int* new_argTypes;
-                        void** new_args; 
-
-                        // pack() will put info of newRcvMsg into argTypes & args respectively
-                        pack(newRcvMsg, &new_argTypes, &new_args);  // TO_DO: & OR *
-                        
-                        struct arg_struct args;
-                        args.sockfd = i;
-                        args.name = name;
-                        args.argTypes = new_argTypes; 
-                        args.args = new_args; 
-
-                        // TODO: still need the definition of search_skel()
-                        pthread_t newThread; 
-                        thread_list.push_back(newThread); 
-                        if (pthread_create(&newThread, NULL, execute, (void*) &args)) {
-                            cerr << "ERROR in creating new thread" << endl;
-                        }
-
-                        
-                    }
-                } // END handle data from client
-            } // END got new incoming connection
-        } // END looping through file descriptors
-
-        if (terminate_flag == 1) {
-            break; // break for(;;)
+        //incoming connection
+        if(FD_ISSET(master_socket, &readfds))
+        {
+            if((new_socket  = accept(master_socket, (struct sockaddr*)&addr, (socklen_t*)&addrlen))<0)
+            {
+                error("ERROR accept new socket");
+            }
+            
+            for(int i=0; i<MAX_CLIENTS; ++i)
+            {
+                if(clients_sockets[i] == 0)
+                {
+                    clients_sockets[i] = new_socket;
+                    break; 
+                }
+            }
         }
 
-    } // END for(;;)--and you thought it would never end!
-    
-    for (std::list<pthread_t>::iterator it = thread_list.begin(); it != thread_list.end(); it++) {
-        pthread_join(*it, NULL);    // TO_DO: use NULL or some other status?
+        for(int i=0; i<MAX_CLIENTS; ++i)
+        {
+            sd = clients_sockets[i]; 
+            if(FD_ISSET(sd, &readfds))
+            {
+                valread = read(sd, size_buff, 4);
+
+                if(valread == 0)
+                {
+                    getpeername(sd, (struct sockaddr*)&addr, (socklen_t*)&addrlen);
+                    close(sd);
+                    clients_sockets[i]=0; 
+                }
+                else
+                {
+                    uint32_t *size = (uint32_t*)size_buff; 
+                    valread = read(sockfd, type_buff, 4);
+                    uint32_t *type = (uint32_t*)type_buff;
+
+                    if(*type == EXECUTE)
+                    {
+                        buff = new char[size - 8];
+                    }
+                }
+            }
+        }
     }
 
+    close(master_socket);
     return 0;
 }
 
@@ -757,7 +641,8 @@ int rpcExecute(void) {
 static void* execute(void* arguments) {
     struct arg_struct *args = (struct arg_struct *)arguments;
 
-    skeleton skel_func = serverDatabase.SearchSkeleton(args->name, args->argTypes);    // search in server local DB
+    skeleton skel_func;
+    int searchResult = serverDatabase.SearchSkeleton(args->name, args->argTypes, &skel_func);    // search in server local DB
     int exeResult = skel_func(args->argTypes, args->args);
 
     int messageLen; 

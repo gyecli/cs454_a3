@@ -56,11 +56,6 @@ int Loc_Request(char* received, int size, ServerLoc *ser)
     Prosig function = MakePro(name, (int*)argTypes);
     int result = db.SearchServer(function, ser);
 
-    cout<<"serch result"<<endl;
-    cout<<ser->identifier<<endl;
-    unsigned short *p = (unsigned short*) ser->portno; 
-    cout<<*p<<endl;
-
     return result; 
 }
 
@@ -161,6 +156,7 @@ int main()
 
                 if(valread == 0)
                 {
+                    cout<<"closed"<<endl;
                     getpeername(sd, (struct sockaddr*)&addr, (socklen_t*)&addrlen);
                     close(sd);
                     sockets[i]=0; 
@@ -204,14 +200,11 @@ int main()
                     }
                     else if(*type == LOC_REQUEST)
                     {
-                        cout<<"received a loc_Request"<<endl;
                         ServerLoc ser; 
                         int result = Loc_Request(buff, *size, &ser);
 
                         if(result == LOC_SUCCESS)
                         {
-                            cout<<"success"<<endl; 
-
                             int length = SIZE_IDENTIFIER + SIZE_PORTNO;
                             char* sendChar = new char[8 + length];
 
@@ -221,7 +214,6 @@ int main()
                             memcpy(sendChar + 8 + SIZE_IDENTIFIER, ser.portno, SIZE_PORTNO); 
 
                             send(sd, sendChar, length + 8, 0);
-                            cout<<"sent"<<endl;
                         }
                         else if(result != LOC_SUCCESS)
                         {
@@ -236,7 +228,7 @@ int main()
                     }
                     else
                     {
-                        //cout<<"===================received what?:"<<*type<<endl;
+                        cout<<"===================received what?:"<<*type<<endl;
                     }
                     delete [] buff;
                 }

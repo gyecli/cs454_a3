@@ -9,12 +9,15 @@ void ServerDB::Add(char* name, int* argTypes, skeleton location)
     list<ProSer>::iterator it = SearchHelper(name, argTypes);
     if(it == database.end())
     {
+        cout<<"not found in serverDB"<<endl;
         //no current result found
         //insert a new element into db
         database.push_back(ProSer(function,location));
     }
     else
     {
+        cout<<"found in serverDB"<<endl;
+
         //already an entry for it
         //update the skeleton
         it->second = location; 
@@ -35,8 +38,16 @@ list<ProSer>::iterator ServerDB::SearchHelper(char* name, int* argTypes)
     return database.end(); 
 }
 
-skeleton ServerDB::SearchSkeleton(char* name, int* argTypes)
+bool ServerDB::SearchSkeleton(char* name, int* argTypes, skeleton *skel_loc)
 {
     list<ProSer>::iterator it = SearchHelper(name, argTypes); 
-    return it->second; 
+    if(it == database.end())
+    {
+        return false;
+    }
+    else
+    {
+        *skel_loc = it->second; 
+        return false; 
+    }
 }
