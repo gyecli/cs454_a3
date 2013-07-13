@@ -25,7 +25,6 @@ int BinderDB::Register(Prosig function, ServerLoc ser, int sockfd)
     }
 }
 
-
 //to find the position in the list
 //where we have the specific function & server info
 list<Tuple>::iterator BinderDB::SearchHelper(Prosig function, ServerLoc ser)

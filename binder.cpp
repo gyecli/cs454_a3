@@ -35,6 +35,10 @@ int binderRegister(char* received, int size, int sockfd)
     memcpy(portno, received + SIZE_IDENTIFIER, SIZE_PORTNO); 
     memcpy(name, received + SIZE_IDENTIFIER + SIZE_PORTNO, SIZE_NAME); 
 
+    cout << "server_id: " << string(server_id) << endl;
+    unsigned short *p = (unsigned short*) portno; 
+    cout << "portno: " << *p << endl;
+
     int used_size = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME; 
     char* buff = new char[size - used_size]; 
     memcpy(buff, received + used_size, size - used_size);
@@ -47,7 +51,7 @@ int binderRegister(char* received, int size, int sockfd)
     return result; 
 }
 
-int Loc_Request(char* received, int size, ServerLoc *ser)
+int Loc_Request(char* received, int size, ServerLoc *ser)  // TODO: changed "*ser" into "**ser" by tim
 {
     char name[SIZE_NAME];
     char* argTypes = new char[size - SIZE_NAME];
@@ -219,7 +223,9 @@ int main()
                             memcpy(sendChar + 8, ser.identifier, SIZE_IDENTIFIER);
                             memcpy(sendChar + 8 + SIZE_IDENTIFIER, ser.portno, SIZE_PORTNO); 
 
-                            send(sd, sendChar, length + 8, 0);
+                            if (send(sd, sendChar, length + 8, 0) <= 0) {
+                                cerr << "ERROR in sending serverID and port to client" << endl;
+                            }
                         }
                         else if(result != LOC_SUCCESS)
                         {
