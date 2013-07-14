@@ -43,38 +43,20 @@ int binderRegister(char* received, int size, int sockfd)
     char* buff = new char[size - used_size]; 
     memcpy(buff, received + used_size, size - used_size);
     argTypes = (int*)buff; 
-    cout << "before make pro" << endl; 
     Prosig *function = MakePro(name, argTypes);
-    cout << "after make pro" << endl; 
-    cout << function->name << endl;
     //sleep(2);
     ServerLoc ser = ServerLoc(server_id, portno);
     //sleep(2);
-    cout << "before register" << endl;
     //sleep(2); 
-    cout << function->name << endl;
     //sleep(10);
-    cout << "copied register function" << endl; 
     list<Tuple>::iterator it=binder_database.database.begin();
     cout << "after begin iterator" << endl; 
 
-    Tuple t = Tuple();
-    cout << function->name << endl;
-    cout << "1" << endl; 
-    t.first = sockfd; 
-    cout << "2" << endl;
-    t.second = ser; 
-    cout << "3" << endl;
-    t.third = list<Prosig>(); 
-    cout << "4" << endl; 
-
-    cout << function->name << endl; 
-    cout << function->argNum << endl; 
 
     //sleep(5);
-    cout << t.third.size() << endl; 
+    //cout << t.third.size() << endl; 
     //sleep(5);
-    t.third.push_back(*function);
+    //t.third.push_back(*function);
     //sleep(5);
 
     // = Tuple(sockfd, ser, *function);
@@ -82,12 +64,11 @@ int binderRegister(char* received, int size, int sockfd)
 
     cout << " after tuple construct " << endl;
     //sleep(5);
-    binder_database.database.push_back(t);
 
     cout << "after push back " << endl; 
-    //int result = binder_database.Register(pro, ser, sockfd); 
+    int result = binder_database.Register(*function, ser, sockfd); 
 
-    return 0; 
+    return result; 
 }
 
 int Loc_Request(char* received, int size, ServerLoc *ser)
