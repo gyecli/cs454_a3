@@ -47,37 +47,16 @@ int binderRegister(char* received, int size, int sockfd)
     Prosig *function = MakePro(name, argTypes);
     cout << "after make pro" << endl; 
     cout << function->name << endl;
-    sleep(2);
+    //sleep(2);
     ServerLoc ser = ServerLoc(server_id, portno);
-    sleep(2);
+    //sleep(2);
     cout << "before register" << endl;
-    sleep(2); 
+    //sleep(2); 
     cout << function->name << endl;
-    sleep(10);
+    //sleep(10);
     cout << "copied register function" << endl; 
     list<Tuple>::iterator it=binder_database.database.begin();
     cout << "after begin iterator" << endl; 
-    for(; it!=binder_database.database.end(); ++it)
-    {
-            cout << "in for loop" << endl; 
-        //this server has already registered at least one function 
-        if(sockfd == it->first && ser == it->second)
-        {
-            for(list<Prosig>::iterator it2 = it->third.begin(); it2 != it->third.end(); ++it2)
-            {
-                if( *function == *it2)
-                {
-                    return REGISTER_DUPLICATE;
-                }
-            }
-            //register the new function
-            it->third.push_back(*function);
-            return REGISTER_SUCCESS;
-        }
-    }
-    cout << "after for loop" << endl; 
-    //the first time to see this server
-
 
     Tuple t = Tuple();
     cout << function->name << endl;
@@ -92,16 +71,17 @@ int binderRegister(char* received, int size, int sockfd)
     cout << function->name << endl; 
     cout << function->argNum << endl; 
 
-    sleep(5);
-
+    //sleep(5);
+    cout << t.third.size() << endl; 
+    //sleep(5);
     t.third.push_back(*function);
-    sleep(5);
+    //sleep(5);
 
     // = Tuple(sockfd, ser, *function);
 
 
     cout << " after tuple construct " << endl;
-    sleep(5);
+    //sleep(5);
     binder_database.database.push_back(t);
 
     cout << "after push back " << endl; 

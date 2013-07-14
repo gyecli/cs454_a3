@@ -28,8 +28,8 @@ void int2char4(uint32_t n, char* result)
 Prosig* MakePro(char* name, int* argTypes)
 {
     Prosig *function = new Prosig(string(name), getArgNum(argTypes), argTypes); 
-    cout << "in make pro" << function->name << endl; 
-    sleep(5);
+    //cout << "in make pro" << function->name << endl; 
+    //sleep(5);
     return function; 
 }
 

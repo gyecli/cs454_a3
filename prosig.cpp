@@ -12,6 +12,7 @@ Prosig::Prosig()
     
 }
 
+/*
 Prosig::Prosig(const Prosig &other)
 {
     this->name = other.name; 
@@ -20,11 +21,15 @@ Prosig::Prosig(const Prosig &other)
     char* temp = new char[size]; 
     memcpy(temp, other.argTypes, size);
     this->argTypes = (int*) temp;
-    
 }
 
 const Prosig& Prosig::operator=( const Prosig& other )
 {
+    if(this == &other)
+    {
+        return *this; 
+    }
+
     this->name = other.name; 
     this->argNum = other.argNum;
     int size = getTypeLength(other.argTypes); 
@@ -34,33 +39,23 @@ const Prosig& Prosig::operator=( const Prosig& other )
 
     return *this; 
 }
+*/
 
-Prosig::Prosig(std::string name, int argNum, int* argTypes):name(name),argNum(argNum)
+Prosig::Prosig(std::string name, int argNum, int* argTypes):name(name),argNum(argNum), argTypes(argTypes)
 {
-    cout << "inside prosig const" << endl; 
-
+/*
     int size = getTypeLength(argTypes);
-    cout << "argTypes size" << size << endl; 
-
     char* buff  = new char[size];
     memcpy(buff, argTypes, size); 
-
-    cout << "after new buff" << endl; 
-
     argTypes = (int*) buff; 
-
-    cout << "after casst" << endl; 
-
-    
-
-    cout << " after memcpy" << endl; 
+    */
 }
 
 Prosig::~Prosig()
 {
     //TODO: I can't delete it, says it's not allocated, I don't know why
     //std::cout<<"delete"<<std::endl;
-    delete [] argTypes;
+    //delete [] argTypes;
 }
 
 bool Prosig::operator==(const Prosig &other) const 

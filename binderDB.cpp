@@ -16,7 +16,7 @@ Tuple::Tuple()
 Tuple::Tuple(int first, ServerLoc second, Prosig function):first(first), second(second)
 {
     cout << " tupple constructor push back" << endl; 
-    sleep(5);
+    //sleep(5);
     this->third = list<Prosig>(); 
     this->third.push_back(function);
 }
