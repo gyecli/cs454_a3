@@ -29,4 +29,4 @@ test_client.run: librpc.a my_test/my_client.c
 
 .PHONY: clean
 clean:
-	rm -rf *.a *.o *.run binder server client
+	rm -rf *.a *.o *.run binder server client *.dSYM
