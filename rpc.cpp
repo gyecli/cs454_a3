@@ -95,66 +95,51 @@ int connectServer(const char* hostAddr, const char* portno, int *socketnum)
 }
 
 
-int ConnectBinder(int* socketnum)
+int ConnectBinder(int* sockfd)
 {
-    cout<<"a"<<endl; 
-    struct sockaddr_in addr;
-    char* hostAddr, *portno; 
-    char hostAddr_buff[250] = {0}; 
+    struct addrinfo hints, *servinfo, *p;
+    int rv;
 
-cout<<"b"<<endl; 
-    if((hostAddr = getenv("BINDER_ADDRESS")) == 0)
-    {
-        perror("can't get env variable SERVER_ADDRESS"); 
-        exit(-1);
+    //*************************************************
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+
+    // get SERVER_ADDRESS and SERVER_PORT
+    string server = getenv("BINDER_ADDRESS");
+    string server_port = getenv("BINDER_PORT"); 
+
+    //*************************************************
+    if ((rv = getaddrinfo(server.c_str(), server_port.c_str(), &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return 1;
     }
-    strcpy(hostAddr_buff, hostAddr); 
-
-    if((portno = getenv("BINDER_PORT"))==0)
+    // loop through all the results and connect to the first we can
+    for(p = servinfo; p != NULL; p = p->ai_next) 
     {
-        perror("can't get env variable SERVER_PORT");
-        exit(-1);
+        if ((*sockfd = socket(p->ai_family, p->ai_socktype,
+                        p->ai_protocol)) == -1) {
+            perror("client: socket");
+            continue;
+        }
+        if (connect(*sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(*sockfd);
+            perror("ERROR in client connecting");
+            continue;
+        }
+        break;
     }
-    cout<<"c"<<endl;
-
-    struct hostent *he;
-    cout<<"d"<<endl;
-    cout<<hostAddr_buff << endl; 
-he = gethostbyname(hostAddr_buff);
-
-cout<<"e" << endl; 
-sleep(3);
-
-    if ( (he = gethostbyname(hostAddr_buff) ) == NULL ) 
+    if (p == NULL) 
     {
-        perror("ERROR gethostbyname");
-        exit(-1);
-    }
-
-    cout<<"f"<<endl; 
-sleep(3);
-    /* copy the network address to sockaddr_in structure */
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(atoi(portno));
-    memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
-    *socketnum = socket(PF_INET, SOCK_STREAM, 0);
-
-cout<<"g"<<endl; 
-sleep(3);
-
-    if(*socketnum == 0)
-    {
-        perror("ERROR socket");
-        exit(-1);
+        fprintf(stderr, "ERROR: client failed to connect\n");
+    return 2;
     }
 
-    if(connect(*socketnum, (struct sockaddr *)&addr, sizeof(addr))<0)
-    {
-        perror("ERROR connect");
-        exit(-1);
-    }
+    // net_ntop - convert IPv4 and IPv6 addresses from binary to text form
+    //inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
+    //printf("client: connecting to %s\n", s);
+    freeaddrinfo(servinfo); // all done with this structure
 
-    return 0; //connect to binder success; 
 }
 
 //Determine the identifier & portno 
