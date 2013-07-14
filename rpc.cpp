@@ -34,158 +34,28 @@ char serverPort[SIZE_PORTNO];
 ServerDB serverDatabase; 
 
 //tim
-//char server_id[SIZE_IDENTIFIER];
-//char server_port[SIZE_PORTNO]; 
+int specialSock; 
 char rcv_name[SIZE_NAME];
-//char* rcv_argTypes;
-//char** rcv_args; 
 int reasonCode; 
-//ServerDB serverDatabase;    // TODO: already in rpcInit.cpp 
-//int binderSocket;           // TODO: This is defined in rpcInit.cpp
-fd_set master;    // master file descriptor list (used in rpcExecute())
-int terminate_flag = 0;     // 1 means receive terminate request
+fd_set master; // master file descriptor list (used in rpcExecute())
+int terminate_flag = 0; // 1 means receive terminate request
 
-//
-
-
-
-// This is for pthread arguments passing (see rpcExecute() ) 
-struct arg_struct {
-    int sockfd;         // This is for send()
-
-    char* name; 
-    int* argTypes;
-    void** args; 
-};
+int calculate_num(char* buffer)
+{
+int num = 0;
+char *it = buffer; 
+while (true) {
+int *n = (int*) it; 
+if (*n == 0) {
+return num+1; 
+}
+num++; 
+it += 4; 
+}
+}
 
 static void* execute(void* arguments);  // Prototype
-//////////////////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////////////////
-// 1.extract from buffer(message), and then put the data correspondly 
-//   into argTypes & args
-// 2.argTypes & args are NOT from rpcCall()
-void pack(char* buffer, int** argTypes, void*** args) {
-    int num = 0;            // number of argTypes
-    int argLen = 0; 
-    char* it = buffer; 
-
-    // This loop is to get the size for argTypes array
-    for (char* it = buffer; atoi(it) != 0; it = it+4) {
-        num++; 
-    }
-    *argTypes = new int[num+1];
-
-    int i = 0; 
-    it = buffer;        // it re-points to the start of buffer
-    // Assign corresponding value into argTypes array
-    for ( ; atoi(it) != 0; it = it+4) {
-        (*argTypes)[i] = atoi(it); 
-        i++; 
-    }
-    (*argTypes)[i] = 0; 
-    it += 4;                    // it now points to args in buffer
-
-    argLen = getArgsLength(*argTypes); 
-
-    (*args) = new void* [num * sizeof(void *)];           // TODO: not sure here
-
-    int j = 0; 
-
-    char *temp1;
-    short *temp2; 
-    int *temp3; 
-    long *temp4;
-    double *temp5;
-    float *temp6;
-
-    while((*argTypes)[j] != 0) {          // last element of argTypes is always ZERO
-        // Type_mask:  (255 << 16)
-        unsigned int current_type = ((*argTypes)[j] & Type_mask) >> 16; 
-        unsigned int num = (((*argTypes)[j]) & array_size_mask);  // # of current arg of current_type
-        
-        int flag = 0; 
-
-        if (num == 0) {
-            num = 1; 
-            flag = 1;       // 1 means the arg is a scalar, not an array
-        }
-
-        switch(current_type) {
-            case ARG_CHAR:
-                // type: char
-                temp1 = new char[num];
-                memcpy(temp1, it, 1*num);
-                if (flag == 1) {
-                    (*args)[j] = (void *) &(*temp1); 
-                } else {
-                    (*args)[j] = new char[num];
-                    (*args)[j] = (void *) temp1; 
-                }
-                it += num; 
-                break; 
-            case ARG_SHORT:
-                // type: short
-                temp2 = new short[num];
-                memcpy (temp2, it, 2*num); 
-                if(flag == 1) {
-                    (*args)[j] = (void *) &(*temp2); 
-                } else {
-                    (*args)[j] = new short[num];
-                    (*args)[j] = (void *) temp2; 
-                }
-                it += 2*num;
-                break;
-            case ARG_INT:
-                // type: int
-                temp3 = new int[num];
-                if(flag == 1) {
-                    (*args)[j] = (void *) &(*temp3); 
-                } else {
-                    (*args)[j] = new int[num];
-                    (*args)[j] = (void *) temp3; 
-                }
-                it += 4*num;
-                break;
-            case ARG_LONG:
-                // type: long
-                temp4 = new long[num];
-                if(flag == 1) {
-                    (*args)[j] = (void *) &(*temp4); 
-                } else {
-                    (*args)[j] = new long[num];
-                    (*args)[j] = (void *) temp4; 
-                }
-                it += 4*num;
-                break;
-            case ARG_DOUBLE:
-                // type: double
-                temp5 = new double[num];
-                if(flag == 1) {
-                    (*args)[j] = (void *) &(*temp5); 
-                } else {
-                    (*args)[j] = new double[num];
-                    (*args)[j] = (void *) temp5; 
-                }
-                it += 8*num;
-                break; 
-            case ARG_FLOAT:
-                // type: float
-                temp6 = new float[num];
-                if(flag == 1) {
-                    (*args)[j] = (void *) &(*temp6); 
-                } else {
-                    (*args)[j] = new float[num];
-                    (*args)[j] = (void *) temp6; 
-                }
-                it += 4*num;
-                break;
-            default:
-                break;
-        }
-        j++; 
-    }
-}
 //////////////////////////////////////////////////////////////////////////////////////////
 // Helper function to create a connection, to be used by client to connect to server 
 // return 0 on success, negative number on failure
@@ -227,31 +97,50 @@ int connectServer(const char* hostAddr, const char* portno, int *socketnum)
 
 int ConnectBinder(int* socketnum)
 {
+    cout<<"a"<<endl; 
     struct sockaddr_in addr;
     char* hostAddr, *portno; 
+    char hostAddr_buff[250] = {0}; 
 
+cout<<"b"<<endl; 
     if((hostAddr = getenv("BINDER_ADDRESS")) == 0)
     {
         perror("can't get env variable SERVER_ADDRESS"); 
         exit(-1);
     }
+    strcpy(hostAddr_buff, hostAddr); 
+
     if((portno = getenv("BINDER_PORT"))==0)
     {
         perror("can't get env variable SERVER_PORT");
         exit(-1);
     }
+    cout<<"c"<<endl;
+
     struct hostent *he;
-    if ( (he = gethostbyname(hostAddr) ) == NULL ) 
+    cout<<"d"<<endl;
+    cout<<hostAddr_buff << endl; 
+he = gethostbyname(hostAddr_buff);
+
+cout<<"e" << endl; 
+sleep(3);
+
+    if ( (he = gethostbyname(hostAddr_buff) ) == NULL ) 
     {
         perror("ERROR gethostbyname");
         exit(-1);
     }
 
+    cout<<"f"<<endl; 
+sleep(3);
     /* copy the network address to sockaddr_in structure */
     addr.sin_family = AF_INET;
     addr.sin_port = htons(atoi(portno));
     memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
     *socketnum = socket(PF_INET, SOCK_STREAM, 0);
+
+cout<<"g"<<endl; 
+sleep(3);
 
     if(*socketnum == 0)
     {
@@ -404,7 +293,9 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // rpcCall 
-int rpcCall(char* name, int* argTypes, void** args) { 
+int rpcCall(char* name, int* argTypes, void** args) 
+{ 
+
 
     //*************************************************
     // TO-DO check whether arguments are valid
@@ -415,7 +306,10 @@ int rpcCall(char* name, int* argTypes, void** args) {
     int valread;
     char size_buff[4];
     char type_buff[4];
+    cout<<"0"<<endl;
     ConnectBinder(&sockfd);
+
+    cout<<"1"<<endl; 
 
     // send LOC_REQUEST message to Binder
     int msgLen = (SIZE_NAME + getTypeLength(argTypes));  // name, argTypes
@@ -423,15 +317,20 @@ int rpcCall(char* name, int* argTypes, void** args) {
     char send_buff[msgLen + 8];
     unsigned int requestType = LOC_REQUEST;
 
+cout<<"2"<<endl; 
+
     memcpy(send_buff, (char *) &msgLen, 4);                 // first 4 bytes stores length of msg
     memcpy(send_buff + 4, (char *) &requestType, 4);          // next 4 bytes stores types info
     memcpy(send_buff + 8, name, SIZE_NAME);                // and then msg = name + argTypes
     memcpy(send_buff + 8 + SIZE_NAME, argTypes, getTypeLength(argTypes)); 
 
     // send LOC_REQUEST msg to Binder
-    if (send(sockfd, send_buff, msgLen + 8, 0) == -1) {
+    if (send(sockfd, send_buff, msgLen + 8, 0) == -1) 
+    {
         cerr << "ERROR in sending LOC_REQUEST to Binder" << endl;
     } 
+
+cout<<"3"<<endl; 
 
     // wait for reply msg from Binder
     valread = read(sockfd, size_buff, 4);
@@ -448,6 +347,8 @@ int rpcCall(char* name, int* argTypes, void** args) {
     }
     else
     {
+        cout<<"4"<<endl; 
+
         uint32_t *size = (uint32_t*)size_buff; 
         valread = read(sockfd, type_buff, 4);
         uint32_t *type = (uint32_t*)type_buff;
@@ -475,94 +376,89 @@ int rpcCall(char* name, int* argTypes, void** args) {
             delete [] buff; 
     		close(sockfd);    // close socket between client and binder
 
-            int server_sock; 
             // Now connect to target server
-    		if (connectServer(server_id, server_port, &server_sock) < 0) {
+    		if (connectServer(server_id, server_port, &sockfd) < 0) 
+            {
                 cout << "ERROR in connecting to server" << endl;
-                cout << "error sockfd: " << server_sock << endl; 
+                cout << "error sockfd: " << sockfd << endl; 
 
                 return -1; 
             }
 
-            cout << "sockfd: " << server_sock << endl; 
+            //before yiyao
 
-            cout<<"connect to server success"<<endl;
+            int messageLen = SIZE_NAME + getTypeLength(argTypes) + getArgsLength(argTypes); // name, argTypes, args
+            int requestType = EXECUTE;
+            char * buffer = new char[8+messageLen+3];
+            memset(buffer, 0, (8+messageLen+3)*sizeof(char));
+            memset(buffer, 0, ((8+messageLen)*sizeof(char))); 
+            memcpy(buffer, (char *) &messageLen, 4);
+            memcpy(buffer+4, (char *) &requestType, 4);
+            memcpy(buffer+8, name, SIZE_NAME); 
+            memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes));
+            char* packedArgs = pack(argTypes, args); 
+            memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), packedArgs, getArgsLength(argTypes));
+            write(sockfd, (void*)buffer, 8+messageLen); // send EXE request to server
+            // wait for reply msg from Server
+            valread = read(sockfd, size_buff, 4); // get size
+            uint32_t *rpy_size = (uint32_t*)size_buff;
+            cout << "(In rpcCall(), Got sth back from server--size of message: " << *rpy_size << endl;
 
-    		int messageLen = msgLen;  // name, argTypes, args
-            cout<< "client size: " << messageLen << endl; 
-            requestType = EXECUTE;
-            buff = new char[8 + messageLen + 2];
-            memset(buff, 0, 10 + messageLen); 
-
-    		memcpy(buff, (char *) &messageLen, 4);
-    		memcpy(buff+4, (char *) &requestType, 4);
-    		//memcpy(buff+8, name, SIZE_NAME); 
-    		//memcpy(buff+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
-            //memcpy(buff+8+SIZE_NAME + getTypeLength(argTypes), args, getArgsLength(argTypes));
-
-            // send EXECUTE request to server
-    		if (send(server_sock, buff, messageLen + 8, 0) == -1) {
-        		cout << "ERROR in sending EXECUTE to Server" << endl;
-                return -1; 
-    		} 
-            cout << "Sent EXECUTE request to server" << endl;
-
-            close(server_sock); 
-/*
-            // wait for reply msg from server
-            char rcv_buffer1[8]; 
-            int numbytes = recv(sockfd, rcv_buffer1, 8, 0);
-            if (numbytes < 0) {
-                cerr << "ERROR in recving LOC reply from Binder" << endl;
-                exit(1); 
-            } else {
-                // extract first 8 bytes from Server
-                char rcv_len[4];
-                char rcv_type[4]; 
-                memcpy(rcv_len, rcv_buffer1, 4); 
-                memcpy(rcv_type, rcv_buffer1+4, 4); 
-
-                len = atoi(rcv_len);
-                type = atoi(rcv_type);
-                
-                if (type == EXECUTE_SUCCESS) {         
-                    
-                    char rcv_buffer2[len];
-                    if (recv(sockfd, rcv_buffer2, len, 0) < 0) {
-
+            if(valread < 0)
+            {
+                perror("ERROR read from socket, probably due to connection failure");
+                return RPCCALL_FAILURE; // TO_DO: should put a LOC_
+            }
+            else if(valread == 0)
+            {
+                //TODO figure out the error case
+                return RPCCALL_FAILURE; 
+            }
+            else 
+            {
+                valread = read(sockfd, type_buff, 4); // get type
+                int *rpy_type = (int *)type_buff;
+                cout<< "client got some kind of result back from server" << endl;
+                if (*rpy_type == EXECUTE_SUCCESS) 
+                {
+                    // 
+                    buff = new char[*rpy_size+5]; // name + argTypes + args
+                    memset(buff, 0, (sizeof(char))*(*rpy_size+5));
+                    valread = read(sockfd, buff, *rpy_size);
+                    if(valread <= 0)
+                    {
+                        perror("ERROR read from socket, probably due to connection failure");
+                        return RPCCALL_FAILURE; 
                     }
-                    //
-                    int *new_argTypes;
-                    void** new_args; 
-                    pack(rcv_buffer2, &new_argTypes, &new_args); 
 
-                    memcpy(args, new_args, getArgsLength(argTypes));
+                    //pack(buff, &new_argTypes, &new_args);
+                    char* new_name = new char[100];
+                    int len_type = getTypeLength(argTypes);
+                    int* new_argTypes = new int[len_type];
+                    int len_args = getArgsLength(argTypes); 
+                    char *argsBuff = new char[len_args];
+                    memcpy(argsBuff, buff+SIZE_NAME+len_type, len_args);
 
-                    close(sockfd);  
-
-                    return RPCCALL_SUCCESS;
-                } else if (type == EXECUTE_FAILURE) {
-                    cout << "EXECUTE FAILURE" << endl;
-                    return RPCCALL_FAILURE;           // TO_DO: should return EXECUTE_FAILURE??
-                } else {
-                    cout << "Should not come here 1" << endl;
-                    return -10;             // TO_DO: haven't been determined
-                }
+                    void ** new_args = unpack (argTypes, argsBuff);
+                    cout << "after unpack: result = " << *((int *)(new_args[0])) << endl;
+                    memcpy(args, new_args, len_args); 
+                    //args = new_args;
+                    close(sockfd);
+                } 
             }
-*/
-    	} 
-        else if (*type == LOC_FAILURE) 
+        }
+        else if (*type == EXECUTE_FAILURE) 
         {
-            cout << "LOC FAILURE" << endl;
-            return RPCCALL_FAILURE;         // TO_DO: should return EXECUTE_FAILURE??
-    	} 
+            return RPCCALL_FAILURE;
+        } 
         else 
         {
-            cout << "Shoudl not come here 2" << endl; 
-            return -10;             // TO_DO: haven't been determined
+            cout << "should not come here " << endl;
+            return -10;
         }
     }
 }
+
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // server calls rpcExecute: wait for and receive request 
@@ -584,6 +480,7 @@ int rpcExecute(void)
     char type_buff[4];
     char* buff;
     int clients_sockets[MAX_CLIENTS] = {0};
+    std::list<pthread_t> thread_list;
 
     FD_ZERO(&master);    // clear the master and temp sets
     FD_ZERO(&read_fds);
@@ -609,7 +506,7 @@ int rpcExecute(void)
             cerr << "ERROR in select in rpcExecute()" << endl;
             exit(4);
         }
-        
+
         //incoming connection
         if(FD_ISSET(clientSocket, &read_fds))
         {
@@ -617,7 +514,7 @@ int rpcExecute(void)
             {
                 perror("ERROR accept new socket");
             }
-            
+
             for(int i=0; i<MAX_CLIENTS; ++i)
             {
                 if(clients_sockets[i] == 0)
@@ -662,17 +559,36 @@ int rpcExecute(void)
                     cout << "size:" << *size << endl; 
                     valread = read(sd, type_buff, 4);
                     uint32_t *type = (uint32_t*)type_buff;
+                    buff = new char[*size];
 
                     if(*type == EXECUTE)
                     {
                         cout<<"received EXECUTE"<<endl;
-                        buff = new char[*size];
-                        valread = read(sd, buff, *size);
-                        cout << "value read: "<<valread<<endl; 
+                        //buff = new char[size - 8];
+                        if (recv(sd, buff, *size, 0) < 0) 
+                        { // rcvMsg = name + argTypes + args
+                            cerr << "ERROR in receiving msg from client" << endl;
+                        }
+                        int n = calculate_num(buff+100); 
+                        int args_len = *size - 100 - n*4; 
+
+                        cout << "len n args_len: " << *size << " " << n << " " << args_len << endl;
+                        specialSock = sd; 
+                        cout << "hello" << endl;
+                        // TODO: still need the definition of search_skel()
+                        char * new_buf = new char[*size];
+                        memcpy(new_buf, buff, *size);
+                        pthread_t newThread; 
+                        thread_list.push_back(newThread); 
+                        if (pthread_create(&newThread, NULL, execute, (void*)new_buf)) 
+                        {
+                            cerr << "ERROR in creating new thread" << endl;
+                        }
                     }
-                    else if(*type == TERMINATE)
+                    if(*type == TERMINATE)
                     {
-                        cout << "received terminate at server" << endl; 
+                        terminate_flag = 1;
+                        break; 
                     }
                     else
                     {
@@ -691,53 +607,87 @@ int rpcExecute(void)
         }
 
     } // END for(;;)--and you thought it would never end!
+
+    for (std::list<pthread_t>::iterator it = thread_list.begin(); it != thread_list.end(); it++) 
+    {
+        pthread_join(*it, NULL); // TO_DO: use NULL or some other status?
+    }
     return 0; 
 }
 
-// when received request from clients, do the execution here
 static void* execute(void* arguments) 
 {
-    struct arg_struct *args = (struct arg_struct *)arguments;
+    cout << "\nEntering execute()..." << endl;
+    //struct arg_struct *args = (struct arg_struct *)arguments;
+    //cout << "name " << (string)args->name << endl;
+    //cout << "argTypes_len: " << getTypeLength(args->argTypes) << endl;
+    //cout << "args_len: " << getArgsLength(args->argTypes) << endl;
+    char* buf = (char *) arguments;
+    char* name = new char[SIZE_NAME]; 
+    memcpy(name, buf, SIZE_NAME);
+    int* it = (int*)(buf+ SIZE_NAME);
+    int type_len = getTypeLength(it);
+    int args_len = getArgsLength(it); 
+    int* argTypes = new int[type_len];
+    memcpy(argTypes, buf+SIZE_NAME, type_len);
 
+    char* argsBlock = new char[args_len];
+    void** args = unpack(argTypes, (buf+SIZE_NAME+getTypeLength(argTypes)));
+    //void** args = (void**)(buf+SIZE_NAME+getTypeLength(argTypes));
     skeleton skel_func;
-    int searchResult = serverDatabase.SearchSkeleton(args->name, args->argTypes, &skel_func);    // search in server local DB
-    int exeResult = skel_func(args->argTypes, args->args);
+    int exeResult = EXECUTE_FAILURE;
+    cout << "name: " << string(name) << endl;
+    cout << "argTypes len " << getTypeLength(argTypes) << endl;
+
+    cout<< endl << endl << "Staring server db search:"<<endl; 
+    cout<<name<<endl; 
+    cout<<getArgsLength(argTypes) << endl; 
+    if (serverDatabase.SearchSkeleton(name, argTypes, &skel_func) == false) 
+    { // search in server local DB
+        cerr << "No such skel_func" << endl;
+    } 
+    else {
+        cout << "Got desired results" << endl;
+        exeResult = skel_func(argTypes, args);
+    }
+    
+    //print(args);
+    cout << "exeResult " << exeResult << endl; 
 
     int messageLen; 
-    char * ready_buffer;
-
+    char* buffer;
     if (exeResult == EXECUTE_SUCCESS) {
-        messageLen = 100 + getTypeLength(args->argTypes) + getArgsLength(args->argTypes);  // name, argTypes, args
-
-        char buffer[8 + messageLen];
+        char* result_args = new char[args_len]; 
+        result_args = pack(argTypes, args);
+        messageLen = 100 + type_len + args_len; // name, argTypes, args
+        buffer = new char[8 + messageLen];
         memcpy(buffer, (char *) &messageLen, 4);
         memcpy(buffer+4, (char *) &exeResult, 4);
-        memcpy(buffer+8, args->name, 100); 
-        memcpy(buffer+108, args->argTypes, getTypeLength(args->argTypes)); 
-        memcpy(buffer+108+getTypeLength(args->argTypes), args->args, getArgsLength(args->argTypes));
-    
-        ready_buffer = buffer;
+        memcpy(buffer+8, name, SIZE_NAME); 
+        memcpy(buffer+108, argTypes, type_len); 
+        memcpy(buffer+108+type_len, result_args, args_len);
+
     } else {
         // EXECUTE_FAILURE
-        reasonCode = -2;    // TODO: is this a good reason code?
-        messageLen = 4; 
-
-        char buffer [12];
+        reasonCode = -2; // TODO: is this a good reason code?
+        messageLen = 4;
+        buffer = new char[12];
         memcpy(buffer, (char *) &messageLen, 4);
         memcpy(buffer+4, (char *) &exeResult, 4);
         memcpy(buffer+8, (char *) &reasonCode, 4); 
-
-        ready_buffer = buffer;
     }
-
-    if (FD_ISSET(args->sockfd, &master)) {
-        if (send(args->sockfd, ready_buffer, 8+messageLen, 0) == -1) {
-            cerr << "send" << endl;
-        }                      
-   }
-   pthread_exit(NULL);
+    if (send(specialSock, buffer, 8+messageLen, 0) == -1) 
+    {
+        cerr << "send" << endl;
+    }
+    // if (FD_ISSET(specialSock, &master)) {
+    // cout << "Server sending back result to client...." << endl;
+    // if (send(specialSock, buffer, 8+messageLen, 0) == -1) {
+    // cerr << "send" << endl;
+    // } 
+    // }
+    pthread_exit(NULL);
 }
-
 
 
 // Clients call rpcTerminate()

@@ -15,6 +15,6 @@ int getTypeLength(int* argTypes);
 int getArgNum(int* argTypes);
 int getArgsLength(int* argTypes);		// added by Tim
 Prosig* MakePro(char* name, int* argTypes);
-
+char* pack(int* argTypes, void** args);
+void** unpack(int* argTypes, char* memBlock);
 #endif
-

@@ -27,6 +27,8 @@ list<ProSer>::iterator ServerDB::SearchHelper(char* name, int* argTypes)
 
     for(list<ProSer>::iterator it=database.begin(); it!=database.end(); ++it)
     {
+        cout << "function:" << function->name <<" "<< function->argNum << endl; 
+        cout << "current :" << it->first.name << " " << it->first.argNum << endl; 
         if(*function == it->first)
         {
             return it; 
@@ -45,6 +47,6 @@ bool ServerDB::SearchSkeleton(char* name, int* argTypes, skeleton *skel_loc)
     else
     {
         *skel_loc = it->second; 
-        return false; 
+        return true; 
     }
 }
