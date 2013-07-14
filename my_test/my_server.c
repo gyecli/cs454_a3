@@ -126,11 +126,35 @@ int main(int argc, char *argv[]) {
         printf("success\n");
     else
         printf("failure\n"); 
+
+
+    argTypes2[0] = (1 << ARG_OUTPUT) | (ARG_CHAR << 16) | 10;
+
     if(rpcRegister("f2", argTypes2, *f2_Skel) == 0)
         printf("success\n");
     else
         printf("failure\n");
 
+argTypes2[0] = (1 << ARG_OUTPUT) | (ARG_CHAR << 16) | 1;
+
+    if(rpcRegister("f2", argTypes2, *f2_Skel) == 0)
+        printf("success\n");
+    else
+        printf("failure\n");
+
+
+      argTypes2[0] = (1 << ARG_OUTPUT) | (ARG_CHAR << 16) | 50;
+
+    if(rpcRegister("f2", argTypes2, *f2_Skel) == 0)
+        printf("success\n");
+    else
+        printf("failure\n");
+      argTypes2[0] = (1 << ARG_OUTPUT) | (ARG_CHAR << 16) | 2;
+
+    if(rpcRegister("f2", argTypes2, *f2_Skel) == 0)
+        printf("success\n");
+    else
+        printf("failure\n");
 
 
 

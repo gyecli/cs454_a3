@@ -19,6 +19,9 @@
 #define RPCCALL_FAILURE -5
 #define TERMINATE_FAILURE -6	// added by Tim
 #define UNKNOW_REQUEST -7
+#define NO_RPC -8 // no such RPC is registered 
+#define NOT_REGISTER -9 // server didn't call rpcRegister, but call rpcExecute
+#define CANT_CONNECT_BINDER -10 
 
 //warning
 #define REGISTER_DUPLICATE 100

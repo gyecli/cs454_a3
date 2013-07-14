@@ -99,6 +99,9 @@ int main() {
   args4 = (void **)malloc(count4 * sizeof(void *));
   args4[0] = (void *)a4;
 
+  rpcTerminate();
+  rpcTerminate();
+
   /* rpcCalls */
   int s0 = rpcCall("f0", argTypes0, args0);
   /* test the return f0 */
@@ -110,6 +113,7 @@ int main() {
     printf("Error: %d\n", s0);
   }
 
+  rpcTerminate();
 
   int s1 = rpcCall("f1", argTypes1, args1);
   /* test the return of f1 */

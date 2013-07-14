@@ -4,40 +4,35 @@
 #include "const.h"
 using namespace std; 
 
-Tuple::Tuple(){}
-Tuple::Tuple(Prosig first, ServerLoc second, int third):first(first), second(second), third(third){}
-
+//Tuple::Tuple(){}
+Tuple::Tuple(int first, ServerLoc second, Prosig function):first(first), second(second)
+{
+    this->third.push_back(function);
+}
 
 //TODO: is there any other type of errors for register?
 int BinderDB::Register(Prosig function, ServerLoc ser, int sockfd)
 {
-    list<Tuple>::iterator it = SearchHelper(function, ser); 
-    if(it == database.end())
-    {
-        //first time for this server to register this function 
-        database.push_back(Tuple(function, ser, sockfd));
-        return REGISTER_SUCCESS; 
-    }
-    else
-    {  
-        //server already registed this function before
-        return REGISTER_DUPLICATE; 
-    }
-}
-
-
-//to find the position in the list
-//where we have the specific function & server info
-list<Tuple>::iterator BinderDB::SearchHelper(Prosig function, ServerLoc ser)
-{
     for(list<Tuple>::iterator it=database.begin(); it!=database.end(); ++it)
     {
-        if(function == it->first && ser == it->second)
+        //this server has already registered at least one function 
+        if(sockfd == it->first && ser == it->second)
         {
-            return it; 
+            for(list<Prosig>::iterator it2 = it->third.begin(); it2 != it->third.end(); ++it2)
+            {
+                if( function == *it2)
+                {
+                    return REGISTER_DUPLICATE;
+                }
+            }
+            //register the new function
+            it->third.push_back(function);
+            return REGISTER_SUCCESS;
         }
     }
-    return database.end(); 
+    //the first time to see this server
+    database.push_back(Tuple(sockfd, ser, function));
+    return REGISTER_SUCCESS;
 }
 
 //search for server given the function prototype 
@@ -45,28 +40,33 @@ int BinderDB::SearchServer(Prosig function, ServerLoc *ser)
 {
     for(list<Tuple>::iterator it=database.begin(); it!=database.end(); ++it)
     {
-        if(function == it->first)
+        for(list<Prosig>::iterator it2 = it->third.begin(); it2 != it->third.end(); ++it2)
         {
-            *ser = it->second;
-            //move it to the back of the list 
-            Tuple selected = *it; 
-            database.erase(it);
-            database.push_back(selected);
-            return LOC_SUCCESS; 
+            if(function == *it2)
+            {
+                *ser = it->second;
+                
+                //move it to the back of the list 
+                Tuple selected = *it; 
+                database.erase(it);
+                database.push_back(selected);
+                return LOC_SUCCESS; 
+            }
         }
-        // TODO: move the ServerLoc to the end of the list
-        // for round-rabin behavior
     }
     return LOC_FAILURE; 
 }
 
+//when a connection is closed, 
+//clean up the database that with that sock#
 void BinderDB::Cleanup(int sockfd)
 {
     for(list<Tuple>::iterator it=database.begin(); it!=database.end(); ++it)
     {
-        if(sockfd == it->third)
+        if(sockfd == it->first)
         {
             database.erase(it);
+            return; 
         }
     }
 }

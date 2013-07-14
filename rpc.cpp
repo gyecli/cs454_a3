@@ -225,7 +225,7 @@ int connectServer(const char* hostAddr, const char* portno, int *socketnum)
 }
 
 
-void ConnectBinder(int* socketnum)
+int ConnectBinder(int* socketnum)
 {
     struct sockaddr_in addr;
     char* hostAddr, *portno; 
@@ -264,6 +264,8 @@ void ConnectBinder(int* socketnum)
         perror("ERROR connect");
         exit(-1);
     }
+
+    return 0; //connect to binder success; 
 }
 
 //Determine the identifier & portno 
@@ -499,7 +501,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
             //memcpy(buff+8+SIZE_NAME + getTypeLength(argTypes), args, getArgsLength(argTypes));
 
             // send EXECUTE request to server
-    		if (send(server_sock, buff, messageLen + 8, 0) != 0) {
+    		if (send(server_sock, buff, messageLen + 8, 0) == -1) {
         		cout << "ERROR in sending EXECUTE to Server" << endl;
                 return -1; 
     		} 
@@ -563,21 +565,17 @@ int rpcCall(char* name, int* argTypes, void** args) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-// get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
-{
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    }
-
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////
 // server calls rpcExecute: wait for and receive request 
 // forward them to skeletons, and send back teh results
 int rpcExecute(void) 
 {
+    //check if the server called rpcRegister first
+    if(serverDatabase.database.size() == 0)
+    {
+        perror("Server hasn't registered anything yet");
+        return NOT_REGISTER;
+    }
+
     fd_set read_fds;  // temp file descriptor list for select()
     int max_sd, sd, new_socket, valread;        // maximum file descriptor number
     socklen_t addrlen;
@@ -590,21 +588,12 @@ int rpcExecute(void)
     FD_ZERO(&master);    // clear the master and temp sets
     FD_ZERO(&read_fds);
 
-    // add the clientSocket to the master set
-    FD_SET(clientSocket, &master);
-    FD_SET(binderSocket, &master);    // TO_DO: can i just add the binderSocket to the set and then listen on it?
-
-    // keep track of the biggest file descriptor
-    max_sd = max(clientSocket, binderSocket); // so far, it's this one
-
-    cout << "In rpcExecute(), clientSocket = " << clientSocket << endl;
-    cout << "In rpcExecute(), binderSocket = " << binderSocket << endl;
-
     while(true)
     {
         FD_ZERO(&read_fds); 
         FD_SET(clientSocket, &read_fds); 
-        max_sd = clientSocket; 
+        FD_SET(binderSocket, &read_fds); 
+        max_sd = max(clientSocket, binderSocket);  
 
         for(int i=0; i < MAX_CLIENTS; ++i)
         {
@@ -639,6 +628,19 @@ int rpcExecute(void)
             }
         }
 
+        if(FD_ISSET(binderSocket, &read_fds))
+        {
+            valread = read(sd, size_buff, 4);
+            valread = read(sd, type_buff, 4);
+            unsigned int* type = (unsigned int*) type_buff; 
+            if(*type == TERMINATE)
+            {
+                cout<<"server received terminate" << endl; 
+            }
+            cout<<"at least give me something OK ? " << endl; 
+        }
+
+
         // run through the existing connections looking for data to read
         for(int j = 0; j < MAX_CLIENTS; ++j)
         {
@@ -667,6 +669,10 @@ int rpcExecute(void)
                         buff = new char[*size];
                         valread = read(sd, buff, *size);
                         cout << "value read: "<<valread<<endl; 
+                    }
+                    else if(*type == TERMINATE)
+                    {
+                        cout << "received terminate at server" << endl; 
                     }
                     else
                     {
@@ -735,18 +741,17 @@ static void* execute(void* arguments)
 
 
 // Clients call rpcTerminate()
-int rpcTerminate(void) {
+int rpcTerminate() 
+{
     int sockfd; 
 
-    string Binder_id = getenv("BINDER_ADDRESS");
-    string Binder_port = getenv("BINDER_PORT"); 
     // re-connect to Binder
-    if (connectServer(Binder_id.c_str(), Binder_port.c_str(), &sockfd) < 0) {
+    if (ConnectBinder(&sockfd) < 0) {
         cout << "ERROR in connecting to Binder" << endl;
-        return -1;      // TO_DO:  need a better meaningful negative number
+        return CANT_CONNECT_BINDER;      // TO_DO:  need a better meaningful negative number
     }
 
-    // send LOC_REQUEST message to Binder
+    // send TERMINATE message to Binder
     int msgLen = 0;     // No following message after type
     char buffer[8];
     unsigned int requestType = TERMINATE;
@@ -757,7 +762,7 @@ int rpcTerminate(void) {
     // send LOC_REQUEST msg to Binder
     if (send(sockfd, buffer, msgLen+8, 0) == -1) {
         cerr << "ERROR in sending TERMINATE to Binder" << endl;
-        return TERMINATE_FAILURE;
+        return CANT_CONNECT_BINDER;
     } 
     close(sockfd); 
     return TERMINATE_SUCCESS;

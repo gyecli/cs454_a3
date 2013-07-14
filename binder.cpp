@@ -111,6 +111,8 @@ int main()
     cout<<"BINDER_ADDRESS "<<hostname<<endl;
     cout<<"BINDER_PORT "<<ntohs(addr.sin_port)<<endl;
 
+    bool terminate = false; 
+
     while(true)
     {
         FD_ZERO(&readfds); 
@@ -156,11 +158,10 @@ int main()
 
                 if(valread == 0)
                 {
-                    cout<<"closed server"<<endl;
+                    //clear this server in database
                     binder_database.Cleanup(sd);
                     close(sd);
                     sockets[i]=0; 
-                    //clear this server in database
                 }
                 else
                 {
@@ -198,6 +199,7 @@ int main()
                         memcpy(sendChar + 4, (char*)&success, 4);
                         memcpy(sendChar + 8, (char*)&result, 4); 
                         send(sd, sendChar, 8 + length, 0); 
+                        delete [] sendChar; 
                     }
                     else if(*type == LOC_REQUEST)
                     {
@@ -209,17 +211,13 @@ int main()
                             int length = SIZE_IDENTIFIER + SIZE_PORTNO;
                             char* sendChar = new char[8 + length];
 
-                            cout<<"before sending to client"<<endl;
-                            cout<<ser.identifier<<endl;
-                            unsigned short *p = (unsigned short*)ser.portno;
-                            cout<<*p<<endl;
-
                             memcpy(sendChar, (char*)&length, 4); 
                             memcpy(sendChar + 4, (char*)&result, 4);
                             memcpy(sendChar + 8, ser.identifier, SIZE_IDENTIFIER);
                             memcpy(sendChar + 8 + SIZE_IDENTIFIER, ser.portno, SIZE_PORTNO); 
-
                             send(sd, sendChar, length + 8, 0);
+
+                            delete [] sendChar; 
                         }
                         else if(result != LOC_SUCCESS)
                         {
@@ -230,17 +228,53 @@ int main()
                             memcpy(sendChar + 4, (char*)&f, 4);
                             memcpy(sendChar + 8, (char*)&result, 4);
                             send(sd, sendChar, length + 8, 0); 
+
+                            delete [] sendChar; 
                         }
+                    }
+                    else if(*type == TERMINATE)
+                    {
+                        terminate = true; 
+                        cout<<"received terminate message"<<endl;
+                        unsigned int size = 0; 
+                        unsigned int type = TERMINATE; 
+                        buff = new char[8];
+                        memcpy(buff, (char*)&size, 4);
+                        memcpy(buff + 4, (char*)&type, 4);
+
+                        for(int j=0; j<MAX_CLIENTS; ++j)
+                        {
+                            int curr_sk = sockets[j];
+                            if(curr_sk > 0)
+                            {
+                                if( send(curr_sk, buff, 8, 0) == -1)
+                                {
+                                    cout<<"error sending" << endl; 
+                                }
+                                else 
+                                    cout<<"sent one"<<endl; 
+                            }
+                        }
+                        delete [] buff; 
                     }
                     else
                     {
                         cout<<"===================received what?:"<<*type<<endl;
                     }
-                    delete [] buff;
                 }
             }
+            if(terminate == true)
+                break; 
         }
+        if(terminate == true)
+            break; 
     }
     close(master_socket);
     return 0;
+}
+
+void binderTerminate()
+{
+    
+
 }
