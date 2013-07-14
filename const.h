@@ -27,6 +27,7 @@
 //warning
 #define REGISTER_DUPLICATE 100
 #define SERVER_UNAVAILABLE 101
+
 //size
 #define SIZE_IDENTIFIER 128
 #define SIZE_PORTNO 2
@@ -39,3 +40,6 @@
 #define Output_mask (1 << 30)
 #define Type_mask (255 << 16)
 #define array_size_mask ((1<<16)-1)	
+
+//other 
+#define BINDER_CODE 454

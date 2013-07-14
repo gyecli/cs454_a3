@@ -217,13 +217,14 @@ int main()
                     {
                         terminate = true; 
                         cout<<"received terminate message"<<endl;
-                        unsigned int size = 0; 
+                        unsigned int size = 4; 
                         unsigned int type = TERMINATE; 
-                        char* sendChar = new char[8];
+                        unsigned int code = BINDER_CODE; 
+                        char* sendChar = new char[8 + size];
                         memcpy(sendChar, (char*)&size, 4);
                         memcpy(sendChar + 4, (char*)&type, 4);
+                        memcpy(sendChar + 8, (char*)&code, 4); 
 
-                        cout << binder_database.database.size() << endl; 
                         for(list<Tuple>::iterator it = binder_database.database.begin(); it != binder_database.database.end(); ++it)
                         {
                             char id[SIZE_IDENTIFIER + 1] = {0};
@@ -236,19 +237,14 @@ int main()
                             connectServer(id, port, &curr_sk);
                             if(curr_sk > 0)
                             {
-                                int r = send(curr_sk, sendChar, 8, 0);
-                                cout << r << endl; 
+                                int r = send(curr_sk, sendChar, 8 + size, 0);
                                 if(  r == -1)
                                 {
-                                    cout<<"error sending" << endl; 
+                                    perror("error sending TERMINATE to server"); 
                                 }
                                 else if( r ==0)
                                 {
-                                    cout << "is it closed?" << endl; 
-                                }
-                                else 
-                                {
-                                    cout<<"sent one"<<endl; 
+                                    perror("Can't connect to this server, maybe it's already terminated"); 
                                 }
                             }
                             else
@@ -346,11 +342,11 @@ int main()
                     }
                 }
             }
-            // if(terminate == true)
-            //     break; 
+            if(terminate == true)
+                 break; 
         }
-        // if(terminate == true)
-        //     break; 
+        if(terminate == true)
+             break; 
     }
     close(master_socket);
     return 0;
