@@ -371,9 +371,9 @@ cout<<"3"<<endl;
             }
 
             //before yiyao
-
-            cout<<"1"<<endl; 
-            int messageLen = SIZE_NAME + getTypeLength(argTypes) + getArgsLength(argTypes); // name, argTypes, args
+            int argLen = getArgsLength(argTypes); 
+            cout << "in rpc call, the lenth is " << argLen << endl; 
+            int messageLen = SIZE_NAME + getTypeLength(argTypes) + argLen; // name, argTypes, args
             int requestType = EXECUTE;
             char * buffer = new char[8+messageLen+3];
             cout<<"2"<<endl; 
@@ -382,10 +382,12 @@ cout<<"3"<<endl;
             memcpy(buffer+4, (char *) &requestType, 4);
             memcpy(buffer+8, name, SIZE_NAME); 
             memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes));
-            char* packedArgs = pack(argTypes, args); 
+            cout<<"2.1"<<endl;
+            sleep(1);
+            char* packedArgs = pickle(argTypes, args); 
             cout<<"2.4"<<endl; 
             sleep(1);
-            memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), packedArgs, getArgsLength(argTypes));
+            memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), packedArgs, argLen);
             cout<<"3"<<endl; 
             write(sockfd, (void*)buffer, 8+messageLen); // send EXE request to server
             // wait for reply msg from Server
@@ -422,7 +424,7 @@ cout<<"3"<<endl;
                         return RPCCALL_FAILURE; 
                     }
 
-                    //pack(buff, &new_argTypes, &new_args);
+                    //pickle(buff, &new_argTypes, &new_args);
                     char* new_name = new char[100];
                     int len_type = getTypeLength(argTypes);
                     int* new_argTypes = new int[len_type];
@@ -430,7 +432,7 @@ cout<<"3"<<endl;
                     char *argsBuff = new char[len_args];
                     memcpy(argsBuff, buff+SIZE_NAME+len_type, len_args);
 
-                    void ** new_args = unpack (argTypes, argsBuff);
+                    void ** new_args = unpickle (argTypes, argsBuff);
                     cout << "after unpack: result = " << *((int *)(new_args[0])) << endl;
                     memcpy(args, new_args, len_args); 
                     //args = new_args;
@@ -629,7 +631,7 @@ static void* execute(void* arguments)
     memcpy(argTypes, buf+SIZE_SOCK+SIZE_NAME, type_len);
 
     char* argsBlock = new char[args_len];
-    void** args = unpack(argTypes, (buf+SIZE_SOCK+SIZE_NAME+getTypeLength(argTypes)));
+    void** args = unpickle(argTypes, (buf+SIZE_SOCK+SIZE_NAME+getTypeLength(argTypes)));
     
     skeleton skel_func;
     int exeResult = EXECUTE_FAILURE;
@@ -655,7 +657,7 @@ static void* execute(void* arguments)
     char* buffer;
     if (exeResult == EXECUTE_SUCCESS) {
         char* result_args = new char[args_len]; 
-        result_args = pack(argTypes, args);
+        result_args = pickle(argTypes, args);
         messageLen = 100 + type_len + args_len; // name, argTypes, args
         buffer = new char[8 + messageLen];
         memcpy(buffer, (char *) &messageLen, 4);
@@ -683,6 +685,7 @@ static void* execute(void* arguments)
     // cerr << "send" << endl;
     // } 
     // }
+    close(*specialSock);
     pthread_exit(NULL);
 }
 
