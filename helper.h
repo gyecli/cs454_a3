@@ -14,8 +14,7 @@
 int getTypeLength(int* argTypes);
 int getArgNum(int* argTypes);
 int getArgsLength(int* argTypes);		// added by Tim
-void error(std::string reason);
-Prosig MakePro(char* name, int* argTypes);
+Prosig* MakePro(char* name, int* argTypes);
 
 #endif
 

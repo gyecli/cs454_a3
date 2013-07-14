@@ -1,18 +1,30 @@
+#include <iostream>
 #include "binderDB.h"
 #include "server_loc.h"
+
+
 #include "prosig.h"
 #include "const.h"
+
+
 using namespace std; 
 
-//Tuple::Tuple(){}
+Tuple::Tuple()
+{
+    this->third = list<Prosig>(); 
+}
 Tuple::Tuple(int first, ServerLoc second, Prosig function):first(first), second(second)
 {
+    cout << " tupple constructor push back" << endl; 
+    sleep(5);
+    this->third = list<Prosig>(); 
     this->third.push_back(function);
 }
 
 //TODO: is there any other type of errors for register?
 int BinderDB::Register(Prosig function, ServerLoc ser, int sockfd)
 {
+    cout << "inside register function" << endl; 
     for(list<Tuple>::iterator it=database.begin(); it!=database.end(); ++it)
     {
         //this server has already registered at least one function 

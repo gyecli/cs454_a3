@@ -18,7 +18,7 @@ public:
     ServerLoc second;
     std::list<Prosig> third; 
 
-    //Tuple();
+    Tuple();
     Tuple(int first, ServerLoc second, Prosig function);
 };
 

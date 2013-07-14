@@ -26,9 +26,12 @@ BinderDB binder_database;
 
 int binderRegister(char* received, int size, int sockfd)
 {
-    char server_id[SIZE_IDENTIFIER]; 
-    char portno[SIZE_PORTNO]; 
-    char name[SIZE_NAME];
+
+    cout << "inside binder register" << endl; 
+    cout << "size: " << size << endl; 
+    char server_id[SIZE_IDENTIFIER] = {0}; 
+    char portno[SIZE_PORTNO] = {0}; 
+    char name[SIZE_NAME] = {0};
     int* argTypes;
 
     memcpy(server_id, received, SIZE_IDENTIFIER); 
@@ -36,15 +39,75 @@ int binderRegister(char* received, int size, int sockfd)
     memcpy(name, received + SIZE_IDENTIFIER + SIZE_PORTNO, SIZE_NAME); 
 
     int used_size = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME; 
+    cout << "used size: " << used_size << endl; 
     char* buff = new char[size - used_size]; 
     memcpy(buff, received + used_size, size - used_size);
     argTypes = (int*)buff; 
-
-    Prosig pro = MakePro(name, argTypes);
+    cout << "before make pro" << endl; 
+    Prosig *function = MakePro(name, argTypes);
+    cout << "after make pro" << endl; 
+    cout << function->name << endl;
+    sleep(2);
     ServerLoc ser = ServerLoc(server_id, portno);
-    int result = binder_database.Register(pro, ser, sockfd); 
+    sleep(2);
+    cout << "before register" << endl;
+    sleep(2); 
+    cout << function->name << endl;
+    sleep(10);
+    cout << "copied register function" << endl; 
+    list<Tuple>::iterator it=binder_database.database.begin();
+    cout << "after begin iterator" << endl; 
+    for(; it!=binder_database.database.end(); ++it)
+    {
+            cout << "in for loop" << endl; 
+        //this server has already registered at least one function 
+        if(sockfd == it->first && ser == it->second)
+        {
+            for(list<Prosig>::iterator it2 = it->third.begin(); it2 != it->third.end(); ++it2)
+            {
+                if( *function == *it2)
+                {
+                    return REGISTER_DUPLICATE;
+                }
+            }
+            //register the new function
+            it->third.push_back(*function);
+            return REGISTER_SUCCESS;
+        }
+    }
+    cout << "after for loop" << endl; 
+    //the first time to see this server
 
-    return result; 
+
+    Tuple t = Tuple();
+    cout << function->name << endl;
+    cout << "1" << endl; 
+    t.first = sockfd; 
+    cout << "2" << endl;
+    t.second = ser; 
+    cout << "3" << endl;
+    t.third = list<Prosig>(); 
+    cout << "4" << endl; 
+
+    cout << function->name << endl; 
+    cout << function->argNum << endl; 
+
+    sleep(5);
+
+    t.third.push_back(*function);
+    sleep(5);
+
+    // = Tuple(sockfd, ser, *function);
+
+
+    cout << " after tuple construct " << endl;
+    sleep(5);
+    binder_database.database.push_back(t);
+
+    cout << "after push back " << endl; 
+    //int result = binder_database.Register(pro, ser, sockfd); 
+
+    return 0; 
 }
 
 int Loc_Request(char* received, int size, ServerLoc *ser)
@@ -53,8 +116,8 @@ int Loc_Request(char* received, int size, ServerLoc *ser)
     char* argTypes = new char[size - SIZE_NAME];
     memcpy(name, received, SIZE_NAME);
     memcpy(argTypes, received + SIZE_NAME, size - SIZE_NAME);
-    Prosig function = MakePro(name, (int*)argTypes);
-    int result = binder_database.SearchServer(function, ser);
+    Prosig *function = MakePro(name, (int*)argTypes);
+    int result = binder_database.SearchServer(*function, ser);
 
     return result; 
 }
@@ -67,10 +130,10 @@ int main()
     char hostname[128];
     char size_buff[4];
     char type_buff[4];
-    char *buff;
+    //char *buff;
     fd_set readfds; 
     int sockets[MAX_CLIENTS] = {0};
-    int max_sd, sd, activity; 
+    int max_sd, sd; 
 
     //master socket
     master_socket = socket(PF_INET, SOCK_STREAM, 0);
@@ -113,6 +176,8 @@ int main()
 
     bool terminate = false; 
 
+    cout << "before while loop" << endl; 
+
     while(true)
     {
         FD_ZERO(&readfds); 
@@ -129,14 +194,18 @@ int main()
         }
 
         //selct blocks until there's an activity
-        activity = select(max_sd+1, &readfds, NULL, NULL, NULL); 
+        if( select(max_sd+1, &readfds, NULL, NULL, NULL) == -1 )
+        {
+            perror("ERROR select");
+        }
+
 
         //incoming connection
         if(FD_ISSET(master_socket, &readfds))
         {
             if((new_socket  = accept(master_socket, (struct sockaddr*)&addr, (socklen_t*)&addrlen))<0)
             {
-                error("ERROR accept new socket");
+                perror("ERROR accept new socket");
             }
             
             for(int i=0; i<MAX_CLIENTS; ++i)
@@ -156,7 +225,11 @@ int main()
             {
                 valread = read(sd, size_buff, 4);
 
-                if(valread == 0)
+                if(valread < 0)
+                {
+                    perror("ERROR read");
+                }
+                else if(valread == 0)
                 {
                     //clear this server in database
                     binder_database.Cleanup(sd);
@@ -166,100 +239,114 @@ int main()
                 else
                 {
                     uint32_t *size = (uint32_t*)size_buff;
-                    //cout<<"size:"<< *size <<endl;
+                    cout<<"size:"<< *size <<endl;
                     valread = read(sd, type_buff, 4);
                     uint32_t *type = (uint32_t*)type_buff;  
 
-                    buff = new char[*size+10]; 
+                    char* buff = new char[*size];
+                    memset(buff, 0, *size); 
                     valread = read(sd, buff, *size);
-                    buff[*size] = '\0';
-
-                    if(*type == REGISTER)
+                    if(valread < 0)
                     {
-                        //cout<<"received register"<<endl;
-                        int result = binderRegister(buff, *size, sd); 
-                        uint32_t length = 4; 
-                        char* sendChar = new char[8 + length];
-                        int success; 
-
-                        if(result == REGISTER_SUCCESS)
-                        {
-                            success = REGISTER_SUCCESS;
-                            result = 0; 
-                        }
-                        else if(result == REGISTER_DUPLICATE)
-                        {
-                            success = REGISTER_SUCCESS;
-                        }
-                        else
-                        {
-                            success = REGISTER_FAILURE; 
-                        }
-                        memcpy(sendChar, (char*)&length, 4); 
-                        memcpy(sendChar + 4, (char*)&success, 4);
-                        memcpy(sendChar + 8, (char*)&result, 4); 
-                        send(sd, sendChar, 8 + length, 0); 
-                        delete [] sendChar; 
+                        perror("ERROR read");
                     }
-                    else if(*type == LOC_REQUEST)
+                    else if(valread == 0)
                     {
-                        ServerLoc ser; 
-                        int result = Loc_Request(buff, *size, &ser);
-
-                        if(result == LOC_SUCCESS)
-                        {
-                            int length = SIZE_IDENTIFIER + SIZE_PORTNO;
-                            char* sendChar = new char[8 + length];
-
-                            memcpy(sendChar, (char*)&length, 4); 
-                            memcpy(sendChar + 4, (char*)&result, 4);
-                            memcpy(sendChar + 8, ser.identifier, SIZE_IDENTIFIER);
-                            memcpy(sendChar + 8 + SIZE_IDENTIFIER, ser.portno, SIZE_PORTNO); 
-                            send(sd, sendChar, length + 8, 0);
-
-                            delete [] sendChar; 
-                        }
-                        else if(result != LOC_SUCCESS)
-                        {
-                            int length = 4; 
-                            char* sendChar = new char[8 + length];
-                            memcpy(sendChar, (char*)&length, 4); 
-                            int f = LOC_FAILURE;
-                            memcpy(sendChar + 4, (char*)&f, 4);
-                            memcpy(sendChar + 8, (char*)&result, 4);
-                            send(sd, sendChar, length + 8, 0); 
-
-                            delete [] sendChar; 
-                        }
-                    }
-                    else if(*type == TERMINATE)
-                    {
-                        terminate = true; 
-                        cout<<"received terminate message"<<endl;
-                        unsigned int size = 0; 
-                        unsigned int type = TERMINATE; 
-                        buff = new char[8];
-                        memcpy(buff, (char*)&size, 4);
-                        memcpy(buff + 4, (char*)&type, 4);
-
-                        for(int j=0; j<MAX_CLIENTS; ++j)
-                        {
-                            int curr_sk = sockets[j];
-                            if(curr_sk > 0)
-                            {
-                                if( send(curr_sk, buff, 8, 0) == -1)
-                                {
-                                    cout<<"error sending" << endl; 
-                                }
-                                else 
-                                    cout<<"sent one"<<endl; 
-                            }
-                        }
-                        delete [] buff; 
+                        //clear this server in database
+                        binder_database.Cleanup(sd);
+                        close(sd);
+                        sockets[i]=0; 
                     }
                     else
                     {
-                        cout<<"===================received what?:"<<*type<<endl;
+                        if(*type == REGISTER)
+                        {
+                            cout<<"received register"<<endl;
+                            int result = binderRegister(buff, *size, sd); 
+                            uint32_t length = 4; 
+                            char* sendChar = new char[8 + length];
+                            int success; 
+
+                            if(result == REGISTER_SUCCESS)
+                            {
+                                success = REGISTER_SUCCESS;
+                                result = 0; 
+                            }
+                            else if(result == REGISTER_DUPLICATE)
+                            {
+                                success = REGISTER_SUCCESS;
+                            }
+                            else
+                            {
+                                success = REGISTER_FAILURE; 
+                            }
+                            memcpy(sendChar, (char*)&length, 4); 
+                            memcpy(sendChar + 4, (char*)&success, 4);
+                            memcpy(sendChar + 8, (char*)&result, 4); 
+                            send(sd, sendChar, 8 + length, 0); 
+                            delete [] sendChar; 
+                        }
+                        else if(*type == LOC_REQUEST)
+                        {
+                            ServerLoc ser; 
+                            int result = Loc_Request(buff, *size, &ser);
+
+                            if(result == LOC_SUCCESS)
+                            {
+                                int length = SIZE_IDENTIFIER + SIZE_PORTNO;
+                                char* sendChar = new char[8 + length];
+
+                                memcpy(sendChar, (char*)&length, 4); 
+                                memcpy(sendChar + 4, (char*)&result, 4);
+                                memcpy(sendChar + 8, ser.identifier, SIZE_IDENTIFIER);
+                                memcpy(sendChar + 8 + SIZE_IDENTIFIER, ser.portno, SIZE_PORTNO); 
+                                send(sd, sendChar, length + 8, 0);
+
+                                delete [] sendChar; 
+                            }
+                            else if(result != LOC_SUCCESS)
+                            {
+                                int length = 4; 
+                                char* sendChar = new char[8 + length];
+                                memcpy(sendChar, (char*)&length, 4); 
+                                int f = LOC_FAILURE;
+                                memcpy(sendChar + 4, (char*)&f, 4);
+                                memcpy(sendChar + 8, (char*)&result, 4);
+                                send(sd, sendChar, length + 8, 0); 
+
+                                delete [] sendChar; 
+                            }
+                        }
+                        else if(*type == TERMINATE)
+                        {
+                            terminate = true; 
+                            cout<<"received terminate message"<<endl;
+                            unsigned int size = 0; 
+                            unsigned int type = TERMINATE; 
+                            char* sendChar = new char[8];
+                            memcpy(sendChar, (char*)&size, 4);
+                            memcpy(sendChar + 4, (char*)&type, 4);
+
+                            for(int j=0; j<MAX_CLIENTS; ++j)
+                            {
+                                int curr_sk = sockets[j];
+                                if(curr_sk > 0)
+                                {
+                                    if( send(curr_sk, sendChar, 8, 0) == -1)
+                                    {
+                                        cout<<"error sending" << endl; 
+                                    }
+                                    else 
+                                        cout<<"sent one"<<endl; 
+                                }
+                            }
+                            delete [] sendChar; 
+                        }
+                        else
+                        {
+                            cout<<"===================received what?:"<<*type<<endl;
+                        }
+                        delete [] buff; 
                     }
                 }
             }

@@ -361,7 +361,7 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
 
     if(valread < 0)
     {
-        error("ERROR read from socket, probably due to connection failure");
+        perror("ERROR read from socket, probably due to connection failure");
         return REGISTER_FAILURE; 
     }
     else if(valread == 0)
@@ -438,7 +438,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
 
     if(valread < 0)
     {
-        error("ERROR read from socket, probably due to connection failure");
+        perror("ERROR read from socket, probably due to connection failure");
         return LOC_FAILURE; 
     }
     else if(valread == 0)
@@ -460,7 +460,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
             valread = read(sockfd, buff, *size);
             if(valread < 0)
             {
-                error("ERROR read from socket, probably due to connection failure");
+                perror("ERROR read from socket, probably due to connection failure");
                 return LOC_FAILURE; 
             }
 
@@ -615,7 +615,7 @@ int rpcExecute(void)
         {
             if((new_socket  = accept(clientSocket, (struct sockaddr*)&addr, (socklen_t*)&addrlen))<0)
             {
-                error("ERROR accept new socket");
+                perror("ERROR accept new socket");
             }
             
             for(int i=0; i<MAX_CLIENTS; ++i)

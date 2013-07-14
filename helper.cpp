@@ -1,4 +1,5 @@
 #include "helper.h"
+#include "Prosig.h"
 
 using namespace std; 
 
@@ -22,17 +23,13 @@ void int2char4(uint32_t n, char* result)
     result[3] = n & 0xFF;
 }
 */
-void error(string reason)
-{
-    //#ifdef _DEBUG
-        cout<<reason<<endl; 
-    //#endif
-}
 
 
-Prosig MakePro(char* name, int* argTypes)
+Prosig* MakePro(char* name, int* argTypes)
 {
-    Prosig function(string(name), getArgNum(argTypes), argTypes); 
+    Prosig *function = new Prosig(string(name), getArgNum(argTypes), argTypes); 
+    cout << "in make pro" << function->name << endl; 
+    sleep(5);
     return function; 
 }
 
@@ -54,7 +51,7 @@ int getArgNum(int* argTypes)
     int* it = argTypes;
     while (*it != 0) {
         ++num;
-        it = it+1;
+        ++it;
     }
     return num;
 }

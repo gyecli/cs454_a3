@@ -6,8 +6,8 @@
 class ServerLoc
 {
 public:
-    char identifier[SIZE_IDENTIFIER]; 
-    char portno[SIZE_PORTNO]; 
+    char identifier[SIZE_IDENTIFIER + 10]; 
+    char portno[SIZE_PORTNO + 10]; 
 
     //TODO: not sure if I need a copy constructor / assignment function 
     ServerLoc();

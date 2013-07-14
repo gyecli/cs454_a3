@@ -1,21 +1,66 @@
+#include <string>
+#include <iostream> 
+
 #include "prosig.h"
 #include "const.h"
-#include <string> 
+#include "helper.h"
+
+using namespace std;  
 
 Prosig::Prosig()
 {
     
 }
 
-Prosig::Prosig(std::string name, int argNum, int* argTypes):name(name),argNum(argNum), argTypes(argTypes)
+Prosig::Prosig(const Prosig &other)
 {
+    this->name = other.name; 
+    this->argNum = other.argNum;
+    int size = getTypeLength(other.argTypes); 
+    char* temp = new char[size]; 
+    memcpy(temp, other.argTypes, size);
+    this->argTypes = (int*) temp;
+    
+}
+
+const Prosig& Prosig::operator=( const Prosig& other )
+{
+    this->name = other.name; 
+    this->argNum = other.argNum;
+    int size = getTypeLength(other.argTypes); 
+    char* temp = new char[size]; 
+    memcpy(temp, other.argTypes, size);
+    this->argTypes = (int*) temp;
+
+    return *this; 
+}
+
+Prosig::Prosig(std::string name, int argNum, int* argTypes):name(name),argNum(argNum)
+{
+    cout << "inside prosig const" << endl; 
+
+    int size = getTypeLength(argTypes);
+    cout << "argTypes size" << size << endl; 
+
+    char* buff  = new char[size];
+    memcpy(buff, argTypes, size); 
+
+    cout << "after new buff" << endl; 
+
+    argTypes = (int*) buff; 
+
+    cout << "after casst" << endl; 
+
+    
+
+    cout << " after memcpy" << endl; 
 }
 
 Prosig::~Prosig()
 {
     //TODO: I can't delete it, says it's not allocated, I don't know why
     //std::cout<<"delete"<<std::endl;
-    //delete [] argTypes;
+    delete [] argTypes;
 }
 
 bool Prosig::operator==(const Prosig &other) const 

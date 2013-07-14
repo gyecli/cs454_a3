@@ -17,9 +17,12 @@ public:
     int* argTypes;
 
     Prosig();
+    Prosig(const Prosig &other);
     Prosig(std::string name, int argNum, int* argTypes);
     ~Prosig();
     bool operator==(const Prosig &other) const;
+    const Prosig& operator=( const Prosig& rhs );
+
 };
 
 #endif

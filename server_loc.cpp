@@ -1,9 +1,10 @@
 #include <string.h>
+#include <iostream>
 #include "server_loc.h"
 #include "const.h"
 
 //TODO: delete these
-#include <iostream>
+
 using namespace std;
 
 ServerLoc::ServerLoc()
@@ -15,8 +16,10 @@ ServerLoc::ServerLoc()
 
 ServerLoc::ServerLoc(char* identifier, char* portno)
 {
-    strcpy(this->identifier, identifier); 
-    strcpy(this->portno, portno); 
+    memset(this->identifier, 0, SIZE_IDENTIFIER + 10);
+    memset(this->portno, 0, SIZE_PORTNO + 10);
+    memcpy(this->identifier, identifier, SIZE_IDENTIFIER); 
+    memcpy(this->portno, portno, SIZE_PORTNO); 
 }
 
 bool ServerLoc::operator == (const ServerLoc &other) const
