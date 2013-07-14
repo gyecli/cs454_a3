@@ -30,7 +30,7 @@
 #define SIZE_IDENTIFIER 128
 #define SIZE_PORTNO 2
 #define SIZE_NAME 100
-#define SIZE_SOCK 4
+#define SIZE_SOCK (sizeof(int))
 
 //masks for extracting parameters 
 #define IO_mask (3 << 30)

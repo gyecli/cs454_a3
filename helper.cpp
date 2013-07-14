@@ -166,10 +166,8 @@ char* pack(int* argTypes, void** args) {
             cout <<endl<< "unit length" << unit_len;
             cout << "before copy " << endl ;
              
-            sleep(5);
             memcpy(it, args[i], unit_len * num); // TO_DO: is args[i] is a consecutive memeory block
             cout << "after copy" << endl; 
-            sleep(1);
             it += (unit_len*num);
         }
     }
@@ -215,7 +213,7 @@ void** unpickle(int *arg_types, char* mem_block) {
     return pp_res;
 }
 
-
+/*
 void** unpack(int* argTypes, char* memBlock)
 {
     cout << "begin unpack" << endl;
@@ -364,8 +362,7 @@ void** unpack(int* argTypes, char* memBlock)
     }
     return args;
 }
-
- 
+*/
 static int UNIT_LEN(int t) {
   t = t >> 16;
     t &= 0xFF;

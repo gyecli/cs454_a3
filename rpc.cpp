@@ -278,9 +278,7 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
 //////////////////////////////////////////////////////////////////////////////////////////
 // rpcCall 
 int rpcCall(char* name, int* argTypes, void** args) 
-{ 
-
-
+{
     //*************************************************
     // TO-DO check whether arguments are valid
     // Note: right now no need to check
@@ -373,23 +371,48 @@ cout<<"3"<<endl;
             //before yiyao
             int argLen = getArgsLength(argTypes); 
             cout << "in rpc call, the lenth is " << argLen << endl; 
-            int messageLen = SIZE_NAME + getTypeLength(argTypes) + argLen; // name, argTypes, args
+
+            long *it = (long*)(args[0]); 
+
+            cout << "after cast" << endl; 
+            //sleep(2); 
+
+            for(int i=0; i< 11; ++i)
+            {
+                cout<<*it<<endl; 
+                it++; 
+            }
+            //sleep(2);
+
+            int type_len = getTypeLength(argTypes); 
+            cout << "type len" << type_len << endl; 
+
+            int messageLen = SIZE_NAME + type_len + argLen; // name, argTypes, args
             int requestType = EXECUTE;
-            char * buffer = new char[8+messageLen+3];
-            cout<<"2"<<endl; 
+
+            char * buffer = new char[8+messageLen+1];
+
             memset(buffer, 0, (8+messageLen+3)*sizeof(char));
+
             memcpy(buffer, (char *) &messageLen, 4);
-            memcpy(buffer+4, (char *) &requestType, 4);
-            memcpy(buffer+8, name, SIZE_NAME); 
-            memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes));
+            memcpy(buffer + 4, (char *) &requestType, 4);
+            memcpy(buffer + 8, name, SIZE_NAME); 
+            memcpy(buffer + 8 + SIZE_NAME, argTypes, type_len);
+
             cout<<"2.1"<<endl;
-            sleep(1);
+            //sleep(1);
+
             char* packedArgs = pickle(argTypes, args); 
+
             cout<<"2.4"<<endl; 
-            sleep(1);
-            memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), packedArgs, argLen);
+            //sleep(5);
+            memcpy(buffer + 8 + SIZE_NAME + type_len, packedArgs, argLen);
+
             cout<<"3"<<endl; 
-            write(sockfd, (void*)buffer, 8+messageLen); // send EXE request to server
+            write(sockfd, (void*)buffer, 8 + messageLen); // send EXE request to server
+
+            delete [] buffer;   
+
             // wait for reply msg from Server
             cout<<"4"<<endl; 
             valread = read(sockfd, size_buff, 4); // get size
@@ -414,7 +437,6 @@ cout<<"3"<<endl;
                 cout<< "client got some kind of result back from server" << endl;
                 if (*rpy_type == EXECUTE_SUCCESS) 
                 {
-                    // 
                     buff = new char[*rpy_size+5]; // name + argTypes + args
                     memset(buff, 0, (sizeof(char))*(*rpy_size+5));
                     valread = read(sockfd, buff, *rpy_size);
@@ -425,29 +447,39 @@ cout<<"3"<<endl;
                     }
 
                     //pickle(buff, &new_argTypes, &new_args);
-                    char* new_name = new char[100];
-                    int len_type = getTypeLength(argTypes);
-                    int* new_argTypes = new int[len_type];
-                    int len_args = getArgsLength(argTypes); 
-                    char *argsBuff = new char[len_args];
-                    memcpy(argsBuff, buff+SIZE_NAME+len_type, len_args);
+                    // char* new_name = new char[100];
+                    // int len_type = getTypeLength(argTypes);
+                    // int* new_argTypes = new int[len_type];
+                    // int len_args = getArgsLength(argTypes); 
+                    // char *argsBuff = new char[len_args];
+                    // memcpy(argsBuff, buff+SIZE_NAME+len_type, len_args);
 
-                    void ** new_args = unpickle (argTypes, argsBuff);
-                    cout << "after unpack: result = " << *((int *)(new_args[0])) << endl;
-                    memcpy(args, new_args, len_args); 
-                    //args = new_args;
+                    // void ** new_args = unpickle (argTypes, argsBuff);
+                    // cout << "after unpack: result = " << *((int *)(new_args[0])) << endl;
+                    // memcpy(args, new_args, len_args); 
+                    // //args = new_args;
+                    // close(sockfd);
+
+                    int len_type = getTypeLength(argTypes); // type in byte
+                    int num_args = getArgNum(argTypes); // arg number 
+                    int len_args = getArgsLength(argTypes); // arg in byte 
+                    //char *argsBuff = new char[len_args];
+                    //memcpy(argsBuff, buff + SIZE_NAME+len_type, len_args);
+                    void ** new_args = unpickle (argTypes, buff + SIZE_NAME + len_type);
+                    memcpy(args, new_args, num_args*(sizeof(void*)));
+                    delete [] buff; 
                     close(sockfd);
+                }
+                else if (*type == EXECUTE_FAILURE) 
+                {
+                    return RPCCALL_FAILURE;
+                } 
+                else 
+                {
+                    cout << "should not come here " << endl;
+                    return -10;
                 } 
             }
-        }
-        else if (*type == EXECUTE_FAILURE) 
-        {
-            return RPCCALL_FAILURE;
-        } 
-        else 
-        {
-            cout << "should not come here " << endl;
-            return -10;
         }
     }
 }
@@ -496,7 +528,7 @@ int rpcExecute(void)
 
         if (select(max_sd + 1, &read_fds, NULL, NULL, NULL) == -1) 
         {
-            cerr << "ERROR in select in rpcExecute()" << endl;
+            perror("ERROR in select in rpcExecute()");
             exit(4);
         }
 
@@ -552,12 +584,11 @@ int rpcExecute(void)
                     cout << "size:" << *size << endl; 
                     valread = read(sd, type_buff, 4);
                     uint32_t *type = (uint32_t*)type_buff;
-                    buff = new char[*size];
 
                     if(*type == EXECUTE)
                     {
                         cout<<"received EXECUTE"<<endl;
-                        //buff = new char[size - 8];
+                        buff = new char[*size];
                         if (recv(sd, buff, *size, 0) < 0) 
                         { // rcvMsg = name + argTypes + args
                             cerr << "ERROR in receiving msg from client" << endl;
@@ -571,10 +602,12 @@ int rpcExecute(void)
                         // TODO: still need the definition of search_skel()
                         char * new_buf = new char[SIZE_SOCK +(*size)];
                         int temp_sock = sd;
+                        clients_sockets[j]=0; 
                         memcpy(new_buf, &temp_sock, SIZE_SOCK);
                         memcpy(new_buf+SIZE_SOCK, buff, *size);
                         pthread_t newThread; 
                         thread_list.push_back(newThread); 
+                        delete [] buff; 
                         if (pthread_create(&newThread, NULL, execute, (void*)new_buf)) 
                         {
                             cerr << "ERROR in creating new thread" << endl;
@@ -591,8 +624,6 @@ int rpcExecute(void)
                         valread = read(sd, buff, *size);
                         cout << "value read: "<<valread<<endl; 
                     }
-
-                    delete [] buff;
                 } 
             } 
         } 
