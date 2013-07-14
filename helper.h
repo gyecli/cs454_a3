@@ -16,6 +16,8 @@ int getArgNum(int* argTypes);
 int getArgsLength(int* argTypes);		// added by Tim
 void error(std::string reason);
 Prosig MakePro(char* name, int* argTypes);
+char* pack(int* argTypes, void** args);
+void** unpack(int* argTypes, char* memBlock);
 
 #endif
 

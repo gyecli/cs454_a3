@@ -13,18 +13,17 @@
 class Tuple
 {
 public:
-    Prosig first;
+
+    int first;
     ServerLoc second;
-    int third; 
+    std::list<Prosig> third; 
+
     Tuple();
-    Tuple(Prosig first, ServerLoc second, int thrid);
+    Tuple(int first, ServerLoc second, Prosig function);
 };
 
 class BinderDB
 {
-private:
-    std::list<Tuple>::iterator SearchHelper(Prosig function, ServerLoc ser); 
-
 public: 
     std::list<Tuple> database; 
 

@@ -26,32 +26,31 @@ BinderDB binder_database;
 
 int binderRegister(char* received, int size, int sockfd)
 {
-    char server_id[SIZE_IDENTIFIER]; 
-    char portno[SIZE_PORTNO]; 
-    char name[SIZE_NAME];
-    int* argTypes;
+    char server_id[SIZE_IDENTIFIER+10] = {0}; 
+    char portno[SIZE_PORTNO+10] = {0}; 
+    char name[SIZE_NAME+10] = {0};
 
+    int* argTypes;
     memcpy(server_id, received, SIZE_IDENTIFIER); 
     memcpy(portno, received + SIZE_IDENTIFIER, SIZE_PORTNO); 
     memcpy(name, received + SIZE_IDENTIFIER + SIZE_PORTNO, SIZE_NAME); 
-
-    cout << "server_id: " << string(server_id) << endl;
-    unsigned short *p = (unsigned short*) portno; 
-    cout << "portno: " << *p << endl;
-
     int used_size = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME; 
     char* buff = new char[size - used_size]; 
+    memset(buff, 0, size-used_size); 
     memcpy(buff, received + used_size, size - used_size);
     argTypes = (int*)buff; 
-
+    
     Prosig pro = MakePro(name, argTypes);
     ServerLoc ser = ServerLoc(server_id, portno);
+    cout << "begin2 registering..." << endl;
+    cout << binder_database.database.size()<<endl; 
+    sleep(10);
     int result = binder_database.Register(pro, ser, sockfd); 
-
+    cout << "begin3 registering..." << endl;
     return result; 
 }
 
-int Loc_Request(char* received, int size, ServerLoc *ser)  // TODO: changed "*ser" into "**ser" by tim
+int Loc_Request(char* received, int size, ServerLoc *ser)
 {
     char name[SIZE_NAME];
     char* argTypes = new char[size - SIZE_NAME];
@@ -115,6 +114,8 @@ int main()
     cout<<"BINDER_ADDRESS "<<hostname<<endl;
     cout<<"BINDER_PORT "<<ntohs(addr.sin_port)<<endl;
 
+    bool terminate = false; 
+
     while(true)
     {
         FD_ZERO(&readfds); 
@@ -160,11 +161,10 @@ int main()
 
                 if(valread == 0)
                 {
-                    cout<<"closed server"<<endl;
+                    //clear this server in database
                     binder_database.Cleanup(sd);
                     close(sd);
                     sockets[i]=0; 
-                    //clear this server in database
                 }
                 else
                 {
@@ -179,14 +179,17 @@ int main()
 
                     if(*type == REGISTER)
                     {
-                        //cout<<"received register"<<endl;
+                        cout<<"received register"<<endl;
                         int result = binderRegister(buff, *size, sd); 
+                        cout << "successfully registered..." << endl;
                         uint32_t length = 4; 
                         char* sendChar = new char[8 + length];
                         int success; 
 
+
                         if(result == REGISTER_SUCCESS)
                         {
+                            cout << "success result" << endl; 
                             success = REGISTER_SUCCESS;
                             result = 0; 
                         }
@@ -202,6 +205,8 @@ int main()
                         memcpy(sendChar + 4, (char*)&success, 4);
                         memcpy(sendChar + 8, (char*)&result, 4); 
                         send(sd, sendChar, 8 + length, 0); 
+                        delete [] sendChar; 
+                        cout << "sent" << endl; 
                     }
                     else if(*type == LOC_REQUEST)
                     {
@@ -213,19 +218,13 @@ int main()
                             int length = SIZE_IDENTIFIER + SIZE_PORTNO;
                             char* sendChar = new char[8 + length];
 
-                            cout<<"before sending to client"<<endl;
-                            cout<<ser.identifier<<endl;
-                            unsigned short *p = (unsigned short*)ser.portno;
-                            cout<<*p<<endl;
-
                             memcpy(sendChar, (char*)&length, 4); 
                             memcpy(sendChar + 4, (char*)&result, 4);
                             memcpy(sendChar + 8, ser.identifier, SIZE_IDENTIFIER);
                             memcpy(sendChar + 8 + SIZE_IDENTIFIER, ser.portno, SIZE_PORTNO); 
+                            send(sd, sendChar, length + 8, 0);
 
-                            if (send(sd, sendChar, length + 8, 0) <= 0) {
-                                cerr << "ERROR in sending serverID and port to client" << endl;
-                            }
+                            delete [] sendChar; 
                         }
                         else if(result != LOC_SUCCESS)
                         {
@@ -236,17 +235,53 @@ int main()
                             memcpy(sendChar + 4, (char*)&f, 4);
                             memcpy(sendChar + 8, (char*)&result, 4);
                             send(sd, sendChar, length + 8, 0); 
+
+                            delete [] sendChar; 
                         }
+                    }
+                    else if(*type == TERMINATE)
+                    {
+                        terminate = true; 
+                        cout<<"received terminate message"<<endl;
+                        unsigned int size = 0; 
+                        unsigned int type = TERMINATE; 
+                        buff = new char[8];
+                        memcpy(buff, (char*)&size, 4);
+                        memcpy(buff + 4, (char*)&type, 4);
+
+                        for(int j=0; j<MAX_CLIENTS; ++j)
+                        {
+                            int curr_sk = sockets[j];
+                            if(curr_sk > 0)
+                            {
+                                if( send(curr_sk, buff, 8, 0) == -1)
+                                {
+                                    cout<<"error sending" << endl; 
+                                }
+                                else 
+                                    cout<<"sent one"<<endl; 
+                            }
+                        }
+                        delete [] buff; 
                     }
                     else
                     {
                         cout<<"===================received what?:"<<*type<<endl;
                     }
-                    delete [] buff;
                 }
             }
+            if(terminate == true)
+                break; 
         }
+        if(terminate == true)
+            break; 
     }
     close(master_socket);
     return 0;
+}
+
+void binderTerminate()
+{
+    
+
 }

@@ -81,6 +81,9 @@ int calculate_num(char* buffer)
 // Assuming "sockfd" is already assigned
 int connectServer(const char* hostAddr, const char* portno, int *socketnum) 
 {
+    cout <<"hafdasf" << endl;
+    cout << "server addr: " << string(hostAddr) << endl;
+    //cout << "server port: " << *((unsigned short *)(portno)) << endl;
     struct sockaddr_in addr;
     struct hostent *he;
     if ( (he = gethostbyname(hostAddr) ) == NULL ) 
@@ -102,8 +105,7 @@ int connectServer(const char* hostAddr, const char* portno, int *socketnum)
         exit(-1);
     }
 
-    cout<<"before connection to server"<<endl;
-    cout<<hostAddr<<endl;
+    cout<<"Connecting to server..."<<endl;
     unsigned short *p = (unsigned short*)portno;
     cout<<*p<<endl;
 
@@ -243,6 +245,7 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     memcpy(send_buff+8+SIZE_IDENTIFIER, serverPort, SIZE_PORTNO); 
     memcpy(send_buff+8+SIZE_IDENTIFIER+SIZE_PORTNO, name, SIZE_NAME); 
     memcpy(send_buff+8+SIZE_IDENTIFIER+SIZE_PORTNO+SIZE_NAME, argTypes, argSize);
+
     write(binderSocket, (void*)send_buff, totalSize+8);
 
     //TODO: error handling, eg: can't connect to binder
@@ -316,9 +319,9 @@ int rpcCall(char* name, int* argTypes, void** args) {
 
 ////////
     char *temp_server = "v1410-wn-172-21-41-112.campus-dynamic.uwaterloo.ca";
-    char *temp_port = "58747";
+    unsigned short temp_port = 59909;
             
-            if (connectServer(temp_server, temp_port, &sockfd) < 0) {
+            if (connectServer(temp_server, (char*) &temp_port, &sockfd) < 0) {
                 cout << "ERROR in connecting to server" << endl;
                 return -1; 
             }
@@ -334,7 +337,9 @@ int rpcCall(char* name, int* argTypes, void** args) {
             memcpy(buffer+4, (char *) &requestType, 4);
             memcpy(buffer+8, name, SIZE_NAME); 
             memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
-            memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), args, getArgsLength(argTypes));
+
+            char* packedArgs = pack(argTypes, args); 
+            memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), packedArgs, getArgsLength(argTypes));
 
             write(sockfd, (void*)buffer, 8+messageLen);     // send EXE request to server
 
@@ -391,7 +396,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
 
 
 
-/*
+            /*
     cout << "Connecting to Binder ...." << endl;
 
     ConnectBinder(&sockfd);
@@ -399,10 +404,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
     cout << "Successfully connected to Binder" << endl;
     // send LOC_REQUEST message to Binder
     int msgLen = (SIZE_NAME + getTypeLength(argTypes));  // name, argTypes
-<<<<<<< HEAD
-=======
-    cout<<"length: " << msgLen << endl; 
->>>>>>> master
+
 
     char send_buff[msgLen + 8];
     unsigned int requestType = LOC_REQUEST;
@@ -410,18 +412,14 @@ int rpcCall(char* name, int* argTypes, void** args) {
     memcpy(send_buff, (char *) &msgLen, 4);                 // first 4 bytes stores length of msg
     memcpy(send_buff + 4, (char *) &requestType, 4);          // next 4 bytes stores types info
     memcpy(send_buff + 8, name, SIZE_NAME);                // and then msg = name + argTypes
-    memcpy(send_buff + 8 + SIZE_NAME, argTypes, getTypeLength(argTypes)); 
+    memcpy(send_buff + 8 + SIZE_NAME, argTypes, getTypeLength(argTypes));       
 
     // send LOC_REQUEST msg to Binder
     if (send(sockfd, send_buff, msgLen + 8, 0) == -1) {
         cerr << "ERROR in sending LOC_REQUEST to Binder" << endl;
     } 
 
-<<<<<<< HEAD
-    // wait for reply msg from Binder
-=======
     // wait for reply msg from Binder    
->>>>>>> master
     valread = read(sockfd, size_buff, 4);
 
     if(valread < 0)
@@ -438,7 +436,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
     {
         uint32_t *size = (uint32_t*)size_buff; 
         valread = read(sockfd, type_buff, 4);
-        uint32_t *type = (uint32_t*)type_buff;
+        int *type = (int*)type_buff;
 
         cout << "size: " << *size << endl;
         cout << "type: " << *type << endl;
@@ -447,13 +445,10 @@ int rpcCall(char* name, int* argTypes, void** args) {
         {                 
     		// now extract server name (128 bytes) and server port (2 bytes)
             cout << "LOC_SUCCESS in rpcCall()" << endl;
-<<<<<<< HEAD
-            buff = new char[*size]; 
-            valread = read(sockfd, buff, *size);
-=======
+
             buff = new char[*size+10];              // TODO why put 10 here?
             valread = read(sockfd, buff, *size+10);
->>>>>>> master
+
             if(valread < 0)
             {
                 error("ERROR read from socket, probably due to connection failure");
@@ -483,15 +478,10 @@ int rpcCall(char* name, int* argTypes, void** args) {
                 return -1; 
             }
 
-<<<<<<< HEAD
-            cout<<"connect to server success"<<endl;
-
-    		int messageLen = msgLen + getArgsLength(argTypes);  // name, argTypes, args
-=======
             cout << "Successfully connected to server" << endl;
     		
             int messageLen = msgLen + getArgsLength(argTypes);  // name, argTypes, args
->>>>>>> master
+
             requestType = EXECUTE;
 
     		char buffer[8 + messageLen];
@@ -499,11 +489,9 @@ int rpcCall(char* name, int* argTypes, void** args) {
     		memcpy(buffer+4, (char *) &requestType, 4);
     		memcpy(buffer+8, name, SIZE_NAME); 
     		memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes)); 
-            memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), args, getArgsLength(argTypes));
+            memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), args, getArgsLength(argTypes));  // TO_DO: can not directly copy the memory!!!!!
 
-<<<<<<< HEAD
 
-=======
             write(sockfd, (void*)buffer, 8+messageLen);
 
             // wait for reply msg from Binder
@@ -550,8 +538,19 @@ int rpcCall(char* name, int* argTypes, void** args) {
                     return -10;
                 }
             }
+        } 
+        else if (*type == LOC_FAILURE) 
+        {
+            cout << "LOC FAILURE" << endl;
+            return RPCCALL_FAILURE;         // TO_DO: should return EXECUTE_FAILURE??
+        } 
+        else 
+        {       
+            cout << "Shoudl not come here 2" << endl; 
+            return -10;             // TO_DO: haven't been determined
+        }
+    }
 */
-    
 
 /*
 >>>>>>> master
@@ -604,20 +603,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
             }
 */
 
-/*
-    	} 
-        else if (*type == LOC_FAILURE) 
-        {
-            cout << "LOC FAILURE" << endl;
-            return RPCCALL_FAILURE;         // TO_DO: should return EXECUTE_FAILURE??
-    	} 
-        else 
-        {
-            cout << "Shoudl not come here 2" << endl; 
-            return -10;             // TO_DO: haven't been determined
-        }
-    }
-*/
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -791,7 +777,8 @@ static void* execute(void* arguments) {
 
     char * name = buf; 
     int* argTypes = (int*)(buf+ SIZE_NAME);
-    void** args = (void**)(buf+SIZE_NAME+getTypeLength(argTypes)); 
+    void** args = unpack(argTypes, (buf+SIZE_NAME+getTypeLength(argTypes)));
+    //void** args = (void**)(buf+SIZE_NAME+getTypeLength(argTypes)); 
 
     skeleton skel_func;
     int exeResult = EXECUTE_FAILURE;    
