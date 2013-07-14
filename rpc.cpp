@@ -437,8 +437,8 @@ cout<<"3"<<endl;
                 cout<< "client got some kind of result back from server" << endl;
                 if (*rpy_type == EXECUTE_SUCCESS) 
                 {
-                    buff = new char[*rpy_size+5]; // name + argTypes + args
-                    memset(buff, 0, (sizeof(char))*(*rpy_size+5));
+                    buff = new char[*rpy_size + 8]; // name + argTypes + args
+                    memset(buff, 0, *rpy_size + 8);
                     valread = read(sockfd, buff, *rpy_size);
                     if(valread <= 0)
                     {
@@ -472,14 +472,18 @@ cout<<"3"<<endl;
                 }
                 else if (*type == EXECUTE_FAILURE) 
                 {
+                    close(sockfd);
                     return RPCCALL_FAILURE;
                 } 
                 else 
                 {
+                    close(sockfd);
                     cout << "should not come here " << endl;
                     return -10;
                 } 
             }
+        } else {
+            cerr << "Location request failed" << endl;
         }
     }
 }
