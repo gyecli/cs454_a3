@@ -41,16 +41,16 @@ int terminate_flag = 0; // 1 means receive terminate request
 
 int calculate_num(char* buffer)
 {
-int num = 0;
-char *it = buffer; 
-while (true) {
-int *n = (int*) it; 
-if (*n == 0) {
-return num+1; 
-}
-num++; 
-it += 4; 
-}
+    int num = 0;
+    char *it = buffer; 
+    while (true) {
+        int *n = (int*) it; 
+        if (*n == 0) {
+            return num+1; 
+        }
+        num++; 
+        it += 4; 
+    }
 }
 
 static void* execute(void* arguments);  // Prototype
@@ -295,6 +295,7 @@ int rpcCall(char* name, int* argTypes, void** args)
 
     char send_buff[msgLen + 8];
     unsigned int requestType = LOC_REQUEST;
+
     memcpy(send_buff, (char *) &msgLen, 4);                 // first 4 bytes stores length of msg
     memcpy(send_buff + 4, (char *) &requestType, 4);          // next 4 bytes stores types info
     memcpy(send_buff + 8, name, SIZE_NAME);                // and then msg = name + argTypes
@@ -354,25 +355,13 @@ int rpcCall(char* name, int* argTypes, void** args)
                 cout << "ERROR in connecting to server" << endl;
                 cout << "error sockfd: " << sockfd << endl; 
 
-                return -1; 
+                return RPCCALL_FAILURE; 
             }
 
             //before yiyao
             int argLen = getArgsLength(argTypes); 
             cout << "in rpc call, the lenth is " << argLen << endl; 
-
-            long *it = (long*)(args[0]); 
-
             cout << "after cast" << endl; 
-            //sleep(2); 
-
-            for(int i=0; i< 11; ++i)
-            {
-                cout<<*it<<endl; 
-                it++; 
-            }
-            //sleep(2);
-
             int type_len = getTypeLength(argTypes); 
             cout << "type len" << type_len << endl; 
 
@@ -394,9 +383,9 @@ int rpcCall(char* name, int* argTypes, void** args)
             delete [] buffer;   
 
             // wait for reply msg from Server
-            cout<<"4"<<endl; 
+            cout<<"step 4"<<endl; 
             valread = read(sockfd, size_buff, 4); // get size
-            cout<<"5"<<endl; 
+            cout<<"step 5"<<endl; 
             uint32_t *rpy_size = (uint32_t*)size_buff;
             cout << "(In rpcCall(), Got sth back from server--size of message: " << *rpy_size << endl;
 
@@ -414,7 +403,7 @@ int rpcCall(char* name, int* argTypes, void** args)
             {
                 valread = read(sockfd, type_buff, 4); // get type
                 int *rpy_type = (int *)type_buff;
-                cout<< "client got some kind of result back from server" << endl;
+                cout<< "type:" << *rpy_type << endl;
                 if (*rpy_type == EXECUTE_SUCCESS) 
                 {
                     buff = new char[*rpy_size + 8]; // name + argTypes + args
@@ -445,12 +434,12 @@ int rpcCall(char* name, int* argTypes, void** args)
                     int len_args = getArgsLength(argTypes); // arg in byte 
                     //char *argsBuff = new char[len_args];
                     //memcpy(argsBuff, buff + SIZE_NAME+len_type, len_args);
-                    void ** new_args = unpickle (argTypes, buff + SIZE_NAME + len_type);
+                    void **new_args = unpickle(argTypes, buff + SIZE_NAME + len_type);
                     memcpy(args, new_args, num_args*(sizeof(void*)));
                     delete [] buff; 
                     close(sockfd);
                 }
-                else if (*type == EXECUTE_FAILURE) 
+                else if (*rpy_type == EXECUTE_FAILURE) 
                 {
                     close(sockfd);
                     return RPCCALL_FAILURE;
@@ -459,9 +448,9 @@ int rpcCall(char* name, int* argTypes, void** args)
                 {
                     close(sockfd);
                     cout << "should not come here " << endl;
-                    return -10;
+                    return UNKNOW_ERROR;
                 } 
-            }
+            }  // if(valread > 0)
         } else {
             cerr << "Location request failed" << endl;
         }
@@ -579,18 +568,21 @@ int rpcExecute(void)
                         { // rcvMsg = name + argTypes + args
                             cerr << "ERROR in receiving msg from client" << endl;
                         }
-                        int n = calculate_num(buff+100); 
-                        int args_len = *size - 100 - n*4; 
+                        int n = calculate_num(buff+ SIZE_NAME); 
+                        int args_len = *size - SIZE_NAME - n * 4; 
 
                         cout << "len n args_len: " << *size << " " << n << " " << args_len << endl;
                         //specialSock = sd; 
                         cout << "hello" << endl;
                         // TODO: still need the definition of search_skel()
-                        char * new_buf = new char[SIZE_SOCK +(*size)];
+                        char * new_buf = new char[SIZE_SOCK + (*size)];
                         int temp_sock = sd;
+
                         clients_sockets[j]=0; 
+
                         memcpy(new_buf, &temp_sock, SIZE_SOCK);
                         memcpy(new_buf+SIZE_SOCK, buff, *size);
+
                         pthread_t newThread; 
                         thread_list.push_back(newThread); 
                         delete [] buff; 
@@ -629,22 +621,20 @@ int rpcExecute(void)
 
 static void* execute(void* arguments) 
 {
-    cout << "\nEntering execute()..." << endl;
     char* buf = (char *) arguments;
-    
-    int * specialSock = new int[SIZE_SOCK];
-    memcpy(specialSock, buf, SIZE_SOCK);
+    int specialSock;
+    memcpy(&specialSock, buf, SIZE_SOCK);
 
-    char* name = new char[SIZE_NAME]; 
-    memcpy(name, buf+SIZE_SOCK, SIZE_NAME);
-    int* it = (int*)(buf+SIZE_SOCK+ SIZE_NAME);
+    char name[SIZE_NAME] = {0}; 
+    memcpy(name, buf + SIZE_SOCK, SIZE_NAME);
+    int* it = (int*)(buf + SIZE_SOCK + SIZE_NAME);
     int type_len = getTypeLength(it);
     int args_len = getArgsLength(it); 
     int* argTypes = new int[type_len];
     memcpy(argTypes, buf+SIZE_SOCK+SIZE_NAME, type_len);
 
     char* argsBlock = new char[args_len];
-    void** args = unpickle(argTypes, (buf+SIZE_SOCK+SIZE_NAME+getTypeLength(argTypes)));
+    void** args = unpickle(argTypes, (buf+SIZE_SOCK+SIZE_NAME + getTypeLength(argTypes)));
     
     skeleton skel_func;
     int exeResult = EXECUTE_FAILURE;
@@ -654,6 +644,7 @@ static void* execute(void* arguments)
     cout<< endl << endl << "Staring server db search:"<<endl; 
     cout<<name<<endl; 
     cout<<getArgsLength(argTypes) << endl; 
+
     if (serverDatabase.SearchSkeleton(name, argTypes, &skel_func) == false) 
     { // search in server local DB
         cerr << "No such skel_func" << endl;
@@ -671,7 +662,7 @@ static void* execute(void* arguments)
     if (exeResult == EXECUTE_SUCCESS) {
         char* result_args = new char[args_len]; 
         result_args = pickle(argTypes, args);
-        messageLen = 100 + type_len + args_len; // name, argTypes, args
+        messageLen = SIZE_NAME + type_len + args_len; // name, argTypes, args
         buffer = new char[8 + messageLen];
         memcpy(buffer, (char *) &messageLen, 4);
         memcpy(buffer+4, (char *) &exeResult, 4);
@@ -681,18 +672,28 @@ static void* execute(void* arguments)
 
     } else {
         // EXECUTE_FAILURE
-        reasonCode = -2; // TODO: is this a good reason code?
+        exeResult = EXECUTE_FAILURE;
+        reasonCode = -99; // TODO: is this a good reason code?
         messageLen = 4;
-        buffer = new char[12];
+        buffer = new char[32];
+        memset(buffer, 0, 32);
         memcpy(buffer, (char *) &messageLen, 4);
         memcpy(buffer+4, (char *) &exeResult, 4);
         memcpy(buffer+8, (char *) &reasonCode, 4); 
     }
-    if (send(*specialSock, buffer, 8+messageLen, 0) == -1) 
+    if (send(specialSock, buffer, 8 + messageLen, 0) == -1) 
     {
-        cerr << "send" << endl;
+        perror("send ERROR in execute()");
     }
-    close(*specialSock);
+    // if (FD_ISSET(specialSock, &master)) {
+    // cout << "Server sending back result to client...." << endl;
+    // if (send(specialSock, buffer, 8+messageLen, 0) == -1) {
+    // cerr << "send" << endl;
+    // } 
+    // }
+    delete [] argTypes;
+    delete [] buffer;
+    close(specialSock);
     pthread_exit(NULL);
 }
 
