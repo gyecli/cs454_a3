@@ -130,7 +130,7 @@ int ConnectBinder(int* sockfd)
     if (p == NULL) 
     {
         fprintf(stderr, "ERROR: client failed to connect\n");
-    return 2;
+        return 2;
     }
 
     freeaddrinfo(servinfo); // all done with this structure
