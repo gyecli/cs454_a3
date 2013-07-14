@@ -99,9 +99,6 @@ int main() {
   args4 = (void **)malloc(count4 * sizeof(void *));
   args4[0] = (void *)a4;
 
-  rpcTerminate();
-  rpcTerminate();
-
   /* rpcCalls */
   int s0 = rpcCall("f0", argTypes0, args0);
   /* test the return f0 */
@@ -112,8 +109,6 @@ int main() {
   else {
     printf("Error: %d\n", s0);
   }
-
-  rpcTerminate();
 
   int s1 = rpcCall("f1", argTypes1, args1);
   /* test the return of f1 */
@@ -136,24 +131,36 @@ int main() {
     printf("Error: %d\n", s2);
   }
 
-
-  int s3 = rpcCall("f3", argTypes3, args3);
-  /* test the return of f3 */
-  printf(
-    "\nEXPECTED return of f3 is: 110 109 108 107 106 105 104 103 102 101 11\n"
-  );
-
-  if (s3 >= 0) {
-    printf("ACTUAL return of f3 is: ");
-    int i;
-    for (i = 0; i < 11; i++) {
-      printf(" %ld", *(((long *)args3[0]) + i));
-    }
-    printf("\n");
+  printf("again\n");
+   s2 = rpcCall("f2", argTypes2, args2);
+  /* test the return of f2 */
+  printf("\nEXPECTED return of f2 is: 31234\n");
+  if (s2 >= 0) {
+    printf("ACTUAL return of f2 is: %s\n", (char *)args2[0]);
   }
   else {
-    printf("Error: %d\n", s3);
-  } 
+    printf("Error: %d\n", s2);
+  }
+
+
+
+  // int s3 = rpcCall("f3", argTypes3, args3);
+  // /* test the return of f3 */
+  // printf(
+  //   "\nEXPECTED return of f3 is: 110 109 108 107 106 105 104 103 102 101 11\n"
+  // );
+
+  // if (s3 >= 0) {
+  //   printf("ACTUAL return of f3 is: ");
+  //   int i;
+  //   for (i = 0; i < 11; i++) {
+  //     printf(" %ld", *(((long *)args3[0]) + i));
+  //   }
+  //   printf("\n");
+  // }
+  // else {
+  //   printf("Error: %d\n", s3);
+  // } 
 
   int s4 = rpcCall("f4", argTypes4, args4);
   /* test the return of f4 */

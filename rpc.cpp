@@ -372,20 +372,26 @@ cout<<"3"<<endl;
 
             //before yiyao
 
+            cout<<"1"<<endl; 
             int messageLen = SIZE_NAME + getTypeLength(argTypes) + getArgsLength(argTypes); // name, argTypes, args
             int requestType = EXECUTE;
             char * buffer = new char[8+messageLen+3];
+            cout<<"2"<<endl; 
             memset(buffer, 0, (8+messageLen+3)*sizeof(char));
-            memset(buffer, 0, ((8+messageLen)*sizeof(char))); 
             memcpy(buffer, (char *) &messageLen, 4);
             memcpy(buffer+4, (char *) &requestType, 4);
             memcpy(buffer+8, name, SIZE_NAME); 
             memcpy(buffer+8+SIZE_NAME, argTypes, getTypeLength(argTypes));
             char* packedArgs = pack(argTypes, args); 
+            cout<<"2.4"<<endl; 
+            sleep(1);
             memcpy(buffer+8+SIZE_NAME+getTypeLength(argTypes), packedArgs, getArgsLength(argTypes));
+            cout<<"3"<<endl; 
             write(sockfd, (void*)buffer, 8+messageLen); // send EXE request to server
             // wait for reply msg from Server
+            cout<<"4"<<endl; 
             valread = read(sockfd, size_buff, 4); // get size
+            cout<<"5"<<endl; 
             uint32_t *rpy_size = (uint32_t*)size_buff;
             cout << "(In rpcCall(), Got sth back from server--size of message: " << *rpy_size << endl;
 
