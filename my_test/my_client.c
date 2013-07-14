@@ -102,6 +102,10 @@ int main() {
   args4 = (void **)malloc(count4 * sizeof(void *));
   args4[0] = (void *)a4;
 
+
+  rpcTerminate();
+  return 0; 
+
   /* rpcCalls */
   int s0 = rpcCall("f0", argTypes0, args0);
   /* test the return f0 */

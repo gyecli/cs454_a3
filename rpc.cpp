@@ -287,25 +287,13 @@ int rpcCall(char* name, int* argTypes, void** args)
     int valread;
     char size_buff[4];
     char type_buff[4];
-    cout<<"0"<<endl;
     ConnectBinder(&sockfd);
-    cout<< "binder socket" << sockfd << endl; 
-
-    cout<<"step 1"<<endl; 
-
-    long *it = (long*)(args[0]);
-    for(int i=0; i< 11; ++i) {
-        cout<<*it<<endl; 
-        it++; 
-    } 
 
     // send LOC_REQUEST message to Binder
     int msgLen = (SIZE_NAME + getTypeLength(argTypes));  // name, argTypes
 
     char send_buff[msgLen + 8];
     unsigned int requestType = LOC_REQUEST;
-
-cout<<"step 2"<<endl; 
 
     memcpy(send_buff, (char *) &msgLen, 4);                 // first 4 bytes stores length of msg
     memcpy(send_buff + 4, (char *) &requestType, 4);          // next 4 bytes stores types info
@@ -317,8 +305,6 @@ cout<<"step 2"<<endl;
     {
         cerr << "ERROR in sending LOC_REQUEST to Binder" << endl;
     } 
-
-cout<<"step 3"<<endl; 
 
     // wait for reply msg from Binder
     valread = read(sockfd, size_buff, 4);
@@ -335,8 +321,6 @@ cout<<"step 3"<<endl;
     }
     else
     {
-        cout<<"step 4"<<endl; 
-
         uint32_t *size = (uint32_t*)size_buff; 
         valread = read(sockfd, type_buff, 4);
         uint32_t *type = (uint32_t*)type_buff;
@@ -377,8 +361,7 @@ cout<<"step 3"<<endl;
             int argLen = getArgsLength(argTypes); 
             cout << "in rpc call, the lenth is " << argLen << endl; 
             cout << "after cast" << endl; 
-            //sleep(2); 
-            //sleep(2);
+
 
             int type_len = getTypeLength(argTypes); 
             cout << "type len" << type_len << endl; 
@@ -394,17 +377,8 @@ cout<<"step 3"<<endl;
             memcpy(buffer + 4, (char *) &requestType, 4);
             memcpy(buffer + 8, name, SIZE_NAME); 
             memcpy(buffer + 8 + SIZE_NAME, argTypes, type_len);
-
-            cout<<"step 2.1"<<endl;
-            //sleep(1);
-
             char* packedArgs = pickle(argTypes, args); 
-
-            cout<<"step 2.4"<<endl; 
-            //sleep(5);
             memcpy(buffer + 8 + SIZE_NAME + type_len, packedArgs, argLen);
-
-            cout<<"step 3"<<endl; 
             write(sockfd, (void*)buffer, 8 + messageLen); // send EXE request to server
             delete [] buffer;   
 
@@ -519,8 +493,9 @@ int rpcExecute(void)
     {
         FD_ZERO(&read_fds); 
         FD_SET(clientSocket, &read_fds); 
-        FD_SET(binderSocket, &read_fds); 
-        max_sd = max(clientSocket, binderSocket);  
+        //FD_SET(binderSocket, &read_fds); 
+        //max_sd = max(clientSocket, binderSocket);  
+        max_sd = clientSocket; 
 
         for(int i=0; i < MAX_CLIENTS; ++i)
         {
@@ -550,22 +525,10 @@ int rpcExecute(void)
                 if(clients_sockets[i] == 0)
                 {
                     clients_sockets[i] = new_socket;
+                    cout << i <<" " << new_socket << endl; 
                     break; 
                 }
             }
-        }
-
-        if(FD_ISSET(binderSocket, &read_fds))
-        {
-            valread = read(sd, size_buff, 4);
-            valread = read(sd, type_buff, 4);
-            unsigned int* type = (unsigned int*) type_buff; 
-
-            if(*type == TERMINATE)
-            {
-                cout<<"server received terminate" << endl; 
-            }
-            cout<<"at least give me something OK ? " << endl; 
         }
 
 

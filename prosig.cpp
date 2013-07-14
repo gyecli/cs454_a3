@@ -78,9 +78,7 @@ bool Prosig::operator==(const Prosig &other) const
 
             len1 = (this->argTypes[i])&array_size_mask; 
             len2 = (other.argTypes[i])&array_size_mask; 
-               
-            cout << "length:" << len1 << " " << len2 << endl;  
-            
+                           
             if( (len1 == 0 && len2 != 0) ||
                 (len2 != 0 && len2 ==0 ))
             {
