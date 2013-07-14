@@ -153,6 +153,7 @@ int main() {
     printf("Error: %d\n", s3);
   } 
 
+  args3[0] = (void *)a3;
    s3 = rpcCall("f3", argTypes3, args3);
   /* test the return of f3 */
   printf(
@@ -171,6 +172,7 @@ int main() {
     printf("Error: %d\n", s3);
   } 
 
+  args3[0] = (void *)a3;
    s3 = rpcCall("f3", argTypes3, args3);
   /* test the return of f3 */
   printf(
@@ -189,6 +191,7 @@ int main() {
     printf("Error: %d\n", s3);
   } 
 
+  args3[0] = (void *)a3;
    s3 = rpcCall("f3", argTypes3, args3);
   /* test the return of f3 */
   printf(

@@ -106,76 +106,30 @@ int getArgsLength(int* argTypes) {
     return total_len; 
 }
 
-char* pack(int* argTypes, void** args) {
+// char* pack(i 
 
-    int argsLength = getArgsLength(argTypes);
-    char *packedBuff = new char[argsLength+1];
-    memset(packedBuff, 0, argsLength+1);
-    char* it = packedBuff;
-
-    cout << "argsLength " << argsLength << endl; 
-
-    int unit_len = 0;
-    for(int i = 0; argTypes[i] != 0; i++)
-    {
-        cout<<"i: "<<i << endl; 
-        unsigned int current_type = ((argTypes[i]) & Type_mask) >> 16;
-        unsigned int num = ((argTypes[i]) & array_size_mask); // # of current arg of current_type
-
-        switch(current_type)
-        {
-            case ARG_CHAR:
-                // type: char
-                unit_len = sizeof(char);
-                break;
-            case ARG_SHORT:
-                // type: short
-                unit_len = sizeof(short);
-                break;
-            case ARG_INT:
-                // type: int
-                unit_len = sizeof(int);
-                break;
-            case ARG_LONG:
-                // type: long
-                unit_len = sizeof(long);
-                break;
-            case ARG_DOUBLE:
-                // type: double
-                unit_len = sizeof(double);
-                break;
-            case ARG_FLOAT:
-                // type: float
-                unit_len = sizeof(float);
-                break;
-            default:
-                break;
-        }
-
-        cout<<"type: " <<current_type << " num:" << num <<endl; 
-
-        if (num == 0) // scalar
-        {
-            memcpy(it, args[i], unit_len);
-            it += unit_len;
-        }
-        else
-        {
-            cout << "char:" << endl; 
-
-            cout <<endl<< "unit length" << unit_len;
-            cout << "before copy " << endl ;
-             
-            memcpy(it, args[i], unit_len * num); // TO_DO: is args[i] is a consecutive memeory block
-            cout << "after copy" << endl; 
-            it += (unit_len*num);
-        }
+static int UNIT_LEN(int t) {
+  t = t >> 16;
+    t &= 0xFF;
+ 
+    switch (t) {
+    case ARG_CHAR:
+        return sizeof(char);
+    case ARG_SHORT:
+        return sizeof(short);
+    case ARG_INT:
+        return sizeof(int);
+    case ARG_LONG:
+        return sizeof(long);
+    case ARG_FLOAT:
+        return sizeof(float);
+    case ARG_DOUBLE:
+        return sizeof(double);
+    default:
+        cerr << "should never reach here" << endl;
+        return 0;
     }
-
-    cout<<"******************"<<endl<<"it:" << (it-packedBuff) << " calculate" << argsLength << endl; 
-    cout << "pack end" << endl;
-    return packedBuff;
-}
+} 
 
 void** unpickle(int *arg_types, char* mem_block) {
     void **pp_res = NULL;
@@ -363,28 +317,9 @@ void** unpack(int* argTypes, char* memBlock)
     return args;
 }
 */
-static int UNIT_LEN(int t) {
-  t = t >> 16;
-    t &= 0xFF;
- 
-    switch (t) {
-    case ARG_CHAR:
-        return sizeof(char);
-    case ARG_SHORT:
-        return sizeof(short);
-    case ARG_INT:
-        return sizeof(int);
-    case ARG_LONG:
-        return sizeof(long);
-    case ARG_FLOAT:
-        return sizeof(float);
-    case ARG_DOUBLE:
-        return sizeof(double);
-    default:
-        cerr << "should never reach here" << endl;
-        return 0;
-    }
-} 
+
+
+
  
 char* pickle(int* arg_types, void** arg_array) {
     char *p_res = NULL, *p_write = NULL;
