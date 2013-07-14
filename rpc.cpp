@@ -111,7 +111,7 @@ int ConnectBinder(int* sockfd)
     //*************************************************
     if ((rv = getaddrinfo(server.c_str(), server_port.c_str(), &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
+        return 0;
     }
     // loop through all the results and connect to the first we can
     for(p = servinfo; p != NULL; p = p->ai_next) 
@@ -123,22 +123,20 @@ int ConnectBinder(int* sockfd)
         }
         if (connect(*sockfd, p->ai_addr, p->ai_addrlen) == -1) {
             close(*sockfd);
-            perror("ERROR in client connecting");
+            perror("ERROR in binder connecting");
             continue;
         }
         break;
     }
     if (p == NULL) 
     {
-        fprintf(stderr, "ERROR: client failed to connect\n");
-    return 2;
+        perror("ERROR: can't connect to binder");
+        return CANT_CONNECT_BINDER;
     }
-
     // net_ntop - convert IPv4 and IPv6 addresses from binary to text form
     //inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
     //printf("client: connecting to %s\n", s);
     freeaddrinfo(servinfo); // all done with this structure
-
 }
 
 //Determine the identifier & portno 
@@ -537,7 +535,6 @@ int rpcExecute(void)
         //     cout<<"at least give me something OK ? " << endl; 
         // }
 
-
         // run through the existing connections looking for data to read
         for(int j = 0; j < MAX_CLIENTS; ++j)
         {
@@ -566,7 +563,7 @@ int rpcExecute(void)
                         buff = new char[*size];
                         if (recv(sd, buff, *size, 0) < 0) 
                         { // rcvMsg = name + argTypes + args
-                            cerr << "ERROR in receiving msg from client" << endl;
+                            perror("ERROR in receiving msg from client");
                         }
                         int n = calculate_num(buff+ SIZE_NAME); 
                         int args_len = *size - SIZE_NAME - n * 4; 
@@ -593,8 +590,20 @@ int rpcExecute(void)
                     }
                     if(*type == TERMINATE)
                     {
-                        terminate_flag = 1;
-                        break; 
+                        int *code;
+                        if (recv(sd, (char*)code, 4, 0) < 0)
+                        {
+                            perror("ERROR in receiving msg from binder");
+                        }
+                        if(*code == BINDER_CODE)
+                        {
+                            terminate_flag = 1;
+                            break; 
+                        }
+                        else
+                        {
+                            perror("ERROR, client does not have the right to terminate");
+                        }
                     }
                     else
                     {
