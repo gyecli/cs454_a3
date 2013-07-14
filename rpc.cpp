@@ -34,7 +34,6 @@ char serverPort[SIZE_PORTNO];
 ServerDB serverDatabase; 
 
 //tim
-int specialSock; 
 char rcv_name[SIZE_NAME];
 int reasonCode; 
 fd_set master; // master file descriptor list (used in rpcExecute())
@@ -293,6 +292,7 @@ int rpcCall(char* name, int* argTypes, void** args)
     char type_buff[4];
     cout<<"0"<<endl;
     ConnectBinder(&sockfd);
+    cout<< "binder socket" << sockfd << endl; 
 
     cout<<"1"<<endl; 
 
@@ -346,7 +346,7 @@ cout<<"3"<<endl;
             valread = read(sockfd, buff, *size);
             if(valread < 0)
             {
-                perror("ERROR read from socket, probably due to connection failure");
+                perror("ERROR read from socket in rpcCall");
                 return LOC_FAILURE; 
             }
 
@@ -558,11 +558,13 @@ int rpcExecute(void)
                         int args_len = *size - 100 - n*4; 
 
                         cout << "len n args_len: " << *size << " " << n << " " << args_len << endl;
-                        specialSock = sd; 
+                        //specialSock = sd; 
                         cout << "hello" << endl;
                         // TODO: still need the definition of search_skel()
-                        char * new_buf = new char[*size];
-                        memcpy(new_buf, buff, *size);
+                        char * new_buf = new char[SIZE_SOCK +(*size)];
+                        int temp_sock = sd;
+                        memcpy(new_buf, &temp_sock, SIZE_SOCK);
+                        memcpy(new_buf+SIZE_SOCK, buff, *size);
                         pthread_t newThread; 
                         thread_list.push_back(newThread); 
                         if (pthread_create(&newThread, NULL, execute, (void*)new_buf)) 
@@ -608,17 +610,21 @@ static void* execute(void* arguments)
     //cout << "argTypes_len: " << getTypeLength(args->argTypes) << endl;
     //cout << "args_len: " << getArgsLength(args->argTypes) << endl;
     char* buf = (char *) arguments;
+    
+    int * specialSock = new int[SIZE_SOCK];
+    memcpy(specialSock, buf, SIZE_SOCK);
+
     char* name = new char[SIZE_NAME]; 
-    memcpy(name, buf, SIZE_NAME);
-    int* it = (int*)(buf+ SIZE_NAME);
+    memcpy(name, buf+SIZE_SOCK, SIZE_NAME);
+    int* it = (int*)(buf+SIZE_SOCK+ SIZE_NAME);
     int type_len = getTypeLength(it);
     int args_len = getArgsLength(it); 
     int* argTypes = new int[type_len];
-    memcpy(argTypes, buf+SIZE_NAME, type_len);
+    memcpy(argTypes, buf+SIZE_SOCK+SIZE_NAME, type_len);
 
     char* argsBlock = new char[args_len];
-    void** args = unpack(argTypes, (buf+SIZE_NAME+getTypeLength(argTypes)));
-    //void** args = (void**)(buf+SIZE_NAME+getTypeLength(argTypes));
+    void** args = unpack(argTypes, (buf+SIZE_SOCK+SIZE_NAME+getTypeLength(argTypes)));
+    
     skeleton skel_func;
     int exeResult = EXECUTE_FAILURE;
     cout << "name: " << string(name) << endl;
@@ -661,7 +667,7 @@ static void* execute(void* arguments)
         memcpy(buffer+4, (char *) &exeResult, 4);
         memcpy(buffer+8, (char *) &reasonCode, 4); 
     }
-    if (send(specialSock, buffer, 8+messageLen, 0) == -1) 
+    if (send(*specialSock, buffer, 8+messageLen, 0) == -1) 
     {
         cerr << "send" << endl;
     }
