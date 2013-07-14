@@ -539,11 +539,12 @@ int rpcExecute(void)
                     }
                     if(*type == TERMINATE)
                     {
-                        int *code;
-                        if (recv(sd, (char*)code, 4, 0) < 0)
+                        buff = new char[*size];
+                        if (recv(sd, buff, *size, 0) < 0)
                         {
                             perror("ERROR in receiving msg from binder");
                         }
+                        unsigned int *code = (unsigned int*) buff; 
                         if(*code == BINDER_CODE)
                         {
                             terminate_flag = 1;

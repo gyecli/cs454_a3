@@ -8,14 +8,24 @@ By Guotian Ye, Yiyao Liu
 
 ********************************************************************************************
 ********************************************************************************************
-How to compile:  (TODO)
+How to compile:
 
 
-	Type the following command to compile
-		"make all"
-	and then the screen should show the following:
-		"gcc -o stringServer stringServer.c
-		 g++ stringClient.cpp -lpthread -o stringClient"
+	Type the following command to compile the librpc.a lib and binder
+
+		make
+
+	Then you can use
+
+	    g++ -L. client.o -lrpc -o client -lpthread
+
+	to link librpc.a with client.oto produce the binary file for client. The only difference of this line of command with the original one provoidede in the lab description is that, we use the -lpthread flag to explicitly link with pthread's lib to make sure the linking works on linux.student.cs machines.
+
+	You can use
+	
+	    g++ -L. server_functions.o server_function_skels.o server.o -lrpc -o server -lpthread
+
+	to produce the binary code for server, which also has the flag -lpthread.
 	
 
 ********************************************************************************************
@@ -32,10 +42,10 @@ Step 2:
 
 Step 3:
 	On server machine(s), type ./server to run server(s) 
-	On client machine(s), type .client to run client(s)
+	On client machine(s), type ./client to run client(s)
 
 Step 4:
-	Checkout output message on clients' machine(s)
+	Check out output message on clients' machine(s)
 
 ********************************************************************************************
 NOTES:
