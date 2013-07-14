@@ -26,9 +26,6 @@ BinderDB binder_database;
 
 int binderRegister(char* received, int size, int sockfd)
 {
-
-    cout << "inside binder register" << endl; 
-    cout << "size: " << size << endl; 
     char server_id[SIZE_IDENTIFIER] = {0}; 
     char portno[SIZE_PORTNO] = {0}; 
     char name[SIZE_NAME] = {0};
@@ -39,33 +36,11 @@ int binderRegister(char* received, int size, int sockfd)
     memcpy(name, received + SIZE_IDENTIFIER + SIZE_PORTNO, SIZE_NAME); 
 
     int used_size = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME; 
-    cout << "used size: " << used_size << endl; 
     char* buff = new char[size - used_size]; 
     memcpy(buff, received + used_size, size - used_size);
     argTypes = (int*)buff; 
     Prosig *function = MakePro(name, argTypes);
-    //sleep(2);
     ServerLoc ser = ServerLoc(server_id, portno);
-    //sleep(2);
-    //sleep(2); 
-    //sleep(10);
-    list<Tuple>::iterator it=binder_database.database.begin();
-    cout << "after begin iterator" << endl; 
-
-
-    //sleep(5);
-    //cout << t.third.size() << endl; 
-    //sleep(5);
-    //t.third.push_back(*function);
-    //sleep(5);
-
-    // = Tuple(sockfd, ser, *function);
-
-
-    cout << " after tuple construct " << endl;
-    //sleep(5);
-
-    cout << "after push back " << endl; 
     int result = binder_database.Register(*function, ser, sockfd); 
 
     return result; 
