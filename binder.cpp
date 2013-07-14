@@ -26,6 +26,41 @@ using namespace std;
 
 BinderDB binder_database;
 
+int connectServer(const char* hostAddr, const char* portno, int *socketnum) 
+{
+    struct sockaddr_in addr;
+    struct hostent *he;
+    if ( (he = gethostbyname(hostAddr) ) == NULL ) 
+    {
+        perror("ERROR gethostbyname");
+        exit(-1);
+    }
+
+    /* copy the network address to sockaddr_in structure */
+    addr.sin_family = AF_INET;
+    uint16_t port = htons(*(uint16_t*)portno);
+    addr.sin_port = port;
+    memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
+    *socketnum = socket(PF_INET, SOCK_STREAM, 0);
+
+    if(*socketnum == 0)
+    {
+        perror("ERROR socket");
+        exit(-1);
+    }
+
+    if(connect(*socketnum, (struct sockaddr *)&addr, sizeof(addr))<0)
+    {
+        perror("ERROR connect");
+        exit(-1);
+    }
+
+    cout<<"inside connectServer function, sockfd:" << *socketnum << endl; 
+
+    return 0; //TO-DO change return value, to indicate error
+}
+
+
 int binderRegister(char* received, int size, int sockfd)
 {
     char server_id[SIZE_IDENTIFIER] = {0}; 
@@ -114,8 +149,6 @@ int main()
 
     bool terminate = false; 
 
-    cout << "before while loop" << endl; 
-
     while(true)
     {
         FD_ZERO(&readfds); 
@@ -177,9 +210,57 @@ int main()
                 else
                 {
                     uint32_t *size = (uint32_t*)size_buff;
-                    cout<<"size:"<< *size <<endl;
                     valread = read(sd, type_buff, 4);
                     uint32_t *type = (uint32_t*)type_buff;  
+
+                    if(*type == TERMINATE)
+                    {
+                        terminate = true; 
+                        cout<<"received terminate message"<<endl;
+                        unsigned int size = 0; 
+                        unsigned int type = TERMINATE; 
+                        char* sendChar = new char[8];
+                        memcpy(sendChar, (char*)&size, 4);
+                        memcpy(sendChar + 4, (char*)&type, 4);
+
+                        cout << binder_database.database.size() << endl; 
+                        for(list<Tuple>::iterator it = binder_database.database.begin(); it != binder_database.database.end(); ++it)
+                        {
+                            char id[SIZE_IDENTIFIER + 1] = {0};
+                            char port[SIZE_PORTNO + 1] = {0}; 
+
+                            memcpy(id, it->second.identifier, SIZE_IDENTIFIER);
+                            memcpy(port, it->second.portno, SIZE_PORTNO);
+
+                            int curr_sk;
+                            connectServer(id, port, &curr_sk);
+                            if(curr_sk > 0)
+                            {
+                                int r = send(curr_sk, sendChar, 8, 0);
+                                cout << r << endl; 
+                                if(  r == -1)
+                                {
+                                    cout<<"error sending" << endl; 
+                                }
+                                else if( r ==0)
+                                {
+                                    cout << "is it closed?" << endl; 
+                                }
+                                else 
+                                {
+                                    cout<<"sent one"<<endl; 
+                                }
+                            }
+                            else
+                            {
+                                perror("error in connecting to server");
+                            }
+                        }
+                        delete [] sendChar; 
+                    }
+
+                    if(terminate == true)
+                        break; 
 
                     char* buff = new char[*size];
                     memset(buff, 0, *size); 
@@ -197,6 +278,7 @@ int main()
                     }
                     else
                     {
+
                         if(*type == REGISTER)
                         {
                             cout<<"received register"<<endl;
@@ -255,44 +337,20 @@ int main()
                                 delete [] sendChar; 
                             }
                         }
-                        else if(*type == TERMINATE)
-                        {
-                            terminate = true; 
-                            cout<<"received terminate message"<<endl;
-                            unsigned int size = 0; 
-                            unsigned int type = TERMINATE; 
-                            char* sendChar = new char[8];
-                            memcpy(sendChar, (char*)&size, 4);
-                            memcpy(sendChar + 4, (char*)&type, 4);
-
-                            for(int j=0; j<MAX_CLIENTS; ++j)
-                            {
-                                int curr_sk = sockets[j];
-                                if(curr_sk > 0)
-                                {
-                                    if( send(curr_sk, sendChar, 8, 0) == -1)
-                                    {
-                                        cout<<"error sending" << endl; 
-                                    }
-                                    else 
-                                        cout<<"sent one"<<endl; 
-                                }
-                            }
-                            delete [] sendChar; 
-                        }
                         else
                         {
-                            cout<<"===================received what?:"<<*type<<endl;
+                            perror("ERROR can't recognize request type");
+                            return UNKNOW_REQUEST; 
                         }
                         delete [] buff; 
                     }
                 }
             }
-            if(terminate == true)
-                break; 
+            // if(terminate == true)
+            //     break; 
         }
-        if(terminate == true)
-            break; 
+        // if(terminate == true)
+        //     break; 
     }
     close(master_socket);
     return 0;

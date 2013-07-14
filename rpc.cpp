@@ -288,20 +288,13 @@ int rpcCall(char* name, int* argTypes, void** args)
     int valread;
     char size_buff[4];
     char type_buff[4];
-    cout<<"0"<<endl;
     ConnectBinder(&sockfd);
-    cout<< "binder socket" << sockfd << endl; 
-
-    cout<<"1"<<endl; 
 
     // send LOC_REQUEST message to Binder
     int msgLen = (SIZE_NAME + getTypeLength(argTypes));  // name, argTypes
 
     char send_buff[msgLen + 8];
     unsigned int requestType = LOC_REQUEST;
-
-cout<<"2"<<endl; 
-
     memcpy(send_buff, (char *) &msgLen, 4);                 // first 4 bytes stores length of msg
     memcpy(send_buff + 4, (char *) &requestType, 4);          // next 4 bytes stores types info
     memcpy(send_buff + 8, name, SIZE_NAME);                // and then msg = name + argTypes
@@ -312,8 +305,6 @@ cout<<"2"<<endl;
     {
         cerr << "ERROR in sending LOC_REQUEST to Binder" << endl;
     } 
-
-cout<<"3"<<endl; 
 
     // wait for reply msg from Binder
     valread = read(sockfd, size_buff, 4);
@@ -330,8 +321,6 @@ cout<<"3"<<endl;
     }
     else
     {
-        cout<<"4"<<endl; 
-
         uint32_t *size = (uint32_t*)size_buff; 
         valread = read(sockfd, type_buff, 4);
         uint32_t *type = (uint32_t*)type_buff;
@@ -398,17 +387,8 @@ cout<<"3"<<endl;
             memcpy(buffer + 4, (char *) &requestType, 4);
             memcpy(buffer + 8, name, SIZE_NAME); 
             memcpy(buffer + 8 + SIZE_NAME, argTypes, type_len);
-
-            cout<<"2.1"<<endl;
-            //sleep(1);
-
             char* packedArgs = pickle(argTypes, args); 
-
-            cout<<"2.4"<<endl; 
-            //sleep(5);
             memcpy(buffer + 8 + SIZE_NAME + type_len, packedArgs, argLen);
-
-            cout<<"3"<<endl; 
             write(sockfd, (void*)buffer, 8 + messageLen); // send EXE request to server
 
             delete [] buffer;   
@@ -518,8 +498,9 @@ int rpcExecute(void)
     {
         FD_ZERO(&read_fds); 
         FD_SET(clientSocket, &read_fds); 
-        FD_SET(binderSocket, &read_fds); 
-        max_sd = max(clientSocket, binderSocket);  
+        //FD_SET(binderSocket, &read_fds); 
+        //max_sd = max(clientSocket, binderSocket);  
+        max_sd = clientSocket; 
 
         for(int i=0; i < MAX_CLIENTS; ++i)
         {
@@ -549,22 +530,23 @@ int rpcExecute(void)
                 if(clients_sockets[i] == 0)
                 {
                     clients_sockets[i] = new_socket;
+                    cout << i <<" " << new_socket << endl; 
                     break; 
                 }
             }
         }
 
-        if(FD_ISSET(binderSocket, &read_fds))
-        {
-            valread = read(sd, size_buff, 4);
-            valread = read(sd, type_buff, 4);
-            unsigned int* type = (unsigned int*) type_buff; 
-            if(*type == TERMINATE)
-            {
-                cout<<"server received terminate" << endl; 
-            }
-            cout<<"at least give me something OK ? " << endl; 
-        }
+        // if(FD_ISSET(binderSocket, &read_fds))
+        // {
+        //     valread = read(sd, size_buff, 4);
+        //     valread = read(sd, type_buff, 4);
+        //     unsigned int* type = (unsigned int*) type_buff; 
+        //     if(*type == TERMINATE)
+        //     {
+        //         cout<<"server received terminate" << endl; 
+        //     }
+        //     cout<<"at least give me something OK ? " << endl; 
+        // }
 
 
         // run through the existing connections looking for data to read
@@ -648,10 +630,6 @@ int rpcExecute(void)
 static void* execute(void* arguments) 
 {
     cout << "\nEntering execute()..." << endl;
-    //struct arg_struct *args = (struct arg_struct *)arguments;
-    //cout << "name " << (string)args->name << endl;
-    //cout << "argTypes_len: " << getTypeLength(args->argTypes) << endl;
-    //cout << "args_len: " << getArgsLength(args->argTypes) << endl;
     char* buf = (char *) arguments;
     
     int * specialSock = new int[SIZE_SOCK];
@@ -714,12 +692,6 @@ static void* execute(void* arguments)
     {
         cerr << "send" << endl;
     }
-    // if (FD_ISSET(specialSock, &master)) {
-    // cout << "Server sending back result to client...." << endl;
-    // if (send(specialSock, buffer, 8+messageLen, 0) == -1) {
-    // cerr << "send" << endl;
-    // } 
-    // }
     close(*specialSock);
     pthread_exit(NULL);
 }
