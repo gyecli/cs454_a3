@@ -5,17 +5,17 @@
 #include <unistd.h>
 
 /* return: OUT; a, b: IN */
-int f0(int a, int b) {
+// int f0(int a, int b) {
 
-  return a + b;
-}   
+//   return a + b;
+// }   
 
 
-/* returns: OUT; a, b, c, d: IN */
-long f1(char a, short b, int c, long d) {
+// /* returns: OUT; a, b, c, d: IN */
+// long f1(char a, short b, int c, long d) {
 
-  return a + b * c - d;
-}
+//   return a + b * c - d;
+// }
 
 
 /* return string is the concatenation of the integer 

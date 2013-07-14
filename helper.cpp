@@ -77,27 +77,27 @@ int getArgsLength(int* argTypes) {
         switch(current_type) {
             case ARG_CHAR:
                 // type: char
-                total_len += 1 * num; 
+                total_len += sizeof(char) * num; 
                 break; 
             case ARG_SHORT:
                 // type: short
-                total_len += 2 * num; 
+                total_len += sizeof(short) * num; 
                 break;
             case ARG_INT:
                 // type: int
-                total_len +=  4 * num; 
+                total_len +=  sizeof(int) * num; 
                 break;
             case ARG_LONG:
                 // type: long
-                total_len += 4 * num; 
+                total_len += sizeof(long) * num; 
                 break;
             case ARG_DOUBLE:
                 // type: double
-                total_len += 8 * num; 
+                total_len += sizeof(double) * num; 
                 break; 
             case ARG_FLOAT:
                 // type: float
-                total_len += 4 * num; 
+                total_len += sizeof(float) * num; 
                 break;
             default:
                 break;
@@ -112,7 +112,8 @@ char* pack(int* argTypes, void** args) {
     
     int argsLength = getArgsLength(argTypes);
     char *packedBuff = new char[argsLength];
-    
+    memset(packedBuff, 0, (argsLength*sizeof(char)));
+
     char* it = packedBuff;
     
     int unit_len;
