@@ -125,6 +125,7 @@ int ConnectBinder(int* sockfd)
     }
     if (p == NULL) 
     {
+
         perror("ERROR: can't connect to binder");
         return CANT_CONNECT_BINDER;
     }
