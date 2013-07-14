@@ -11,6 +11,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <time.h>
+#include <cstdio>
+#include <pthread.h>
 
 #include "const.h"
 #include "prosig.h"

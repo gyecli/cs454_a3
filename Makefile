@@ -20,11 +20,11 @@ test_server.run: librpc.a my_test/my_server.c my_test/my_server_functions.c my_t
 	$(CC) -c -o server_functions.o my_test/my_server_functions.c
 	$(CC) -c -o server_function_skels.o my_test/my_server_function_skels.c
 	$(CC) -c -o server.o my_test/my_server.c
-	$(CC) -L. server_functions.o server_function_skels.o server.o -lrpc -o $@
+	$(CC) -L. server_functions.o server_function_skels.o server.o -lrpc -o $@ -lpthread
 
 test_client.run: librpc.a my_test/my_client.c
 	$(CC) -c -o client.o my_test/my_client.c
-	$(CC) -L. client.o -lrpc -o $@
+	$(CC) -L. client.o -lrpc -o $@ -lpthread
 
 
 .PHONY: clean

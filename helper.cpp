@@ -1,5 +1,6 @@
 #include "helper.h"
-#include "Prosig.h"
+#include <cstdlib>
+#include <cstring>
 
 using namespace std; 
 
