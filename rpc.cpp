@@ -65,7 +65,7 @@ int connectServer(const char* hostAddr, const char* portno, int *socketnum)
     if ( (he = gethostbyname(hostAddr) ) == NULL ) 
     {
         perror("ERROR gethostbyname");
-        exit(-1);
+        return ERROR_CONNECCTION; 
     }
 
     /* copy the network address to sockaddr_in structure */
@@ -78,16 +78,14 @@ int connectServer(const char* hostAddr, const char* portno, int *socketnum)
     if(*socketnum == 0)
     {
         perror("ERROR socket");
-        exit(-1);
+        return ERROR_CONNECCTION;
     }
 
     if(connect(*socketnum, (struct sockaddr *)&addr, sizeof(addr))<0)
     {
         perror("ERROR connect");
-        exit(-1);
+        return ERROR_CONNECCTION;
     }
-
-    cout<<"inside connectServer function, sockfd:" << *socketnum << endl; 
 
     return 0; //TO-DO change return value, to indicate error
 }
@@ -98,7 +96,6 @@ int ConnectBinder(int* sockfd)
     struct addrinfo hints, *servinfo, *p;
     int rv;
 
-    //*************************************************
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -107,7 +104,6 @@ int ConnectBinder(int* sockfd)
     string server = getenv("BINDER_ADDRESS");
     string server_port = getenv("BINDER_PORT"); 
 
-    //*************************************************
     if ((rv = getaddrinfo(server.c_str(), server_port.c_str(), &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 0;
@@ -183,17 +179,12 @@ void GetSelfID()
     memcpy(serverID, hostname, SIZE_IDENTIFIER); 
     uint16_t pno = ntohs(addr.sin_port); 
     memcpy(serverPort, (char*)(&pno), SIZE_PORTNO); 
-
-    cout<<"server id:"<<serverID<<endl;
-    unsigned short* p = (unsigned short*)serverPort; 
-    cout<<"port no:"<<*p<<endl;
 }
 
 int rpcInit()
 {
     GetSelfID();            // Opcen a client socket for incoming clients
     ConnectBinder(&binderSocket); 
-    //TODO: handle error cases
     return 0; 
 }
 
@@ -206,12 +197,6 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     int totalSize = SIZE_IDENTIFIER + SIZE_PORTNO + SIZE_NAME + argSize; 
     send_buff = new char[totalSize + 8];
 
-    //marshall everything into the stream to binder 
-
-    //cout<<"before register, my current porno is:"<<endl;
-    //unsigned short *pp = (unsigned short*)serverPort; 
-    //cout<<*pp<<endl; 
-
     memcpy(send_buff, (char*)&totalSize, 4); 
     int t = REGISTER;
     memcpy(send_buff+4, (char*)&t , 4);
@@ -221,8 +206,6 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     memcpy(send_buff+8+SIZE_IDENTIFIER+SIZE_PORTNO+SIZE_NAME, argTypes, argSize);
     write(binderSocket, (void*)send_buff, totalSize+8);
 
-    //TODO: error handling, eg: can't connect to binder
-    //TODO: not sure if 'read' immediately after 'write' works
     char size_buff[4];
     valread = read(binderSocket, size_buff, 4);
 
@@ -239,7 +222,6 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     {
         uint32_t *size = (uint32_t*)size_buff; 
         char type_buff[4];
-
         valread = read(binderSocket, type_buff, 4);
 
         uint32_t *type = (uint32_t*)type_buff;
@@ -252,7 +234,14 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
             int* warning = (int*) warning_buff; 
 
             if(*warning > 0)
-                cout<<"Warning: "<< *warning<<endl; 
+            {
+                cout<<"Warning # "<< *warning;
+                if(*warning == REGISTER_DUPLICATE) 
+                {
+                    cout<<" : Duplicate Registration";
+                }
+                cout<<endl; 
+            }
         }  
         else
         {
@@ -266,9 +255,7 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
     //store to local DB
     serverDatabase.Add(name, argTypes, f);
 
-    // TODO:  sorry, where is the registeration to Binder? (may be i missed it)
     return REGISTER_SUCCESS; 
-
 }
 
 
@@ -276,10 +263,6 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
 // rpcCall 
 int rpcCall(char* name, int* argTypes, void** args) 
 {
-    //*************************************************
-    // TO-DO check whether arguments are valid
-    // Note: right now no need to check
-    //*************************************************
     char* buff; 
     int sockfd; 
     int valread;
@@ -326,7 +309,6 @@ int rpcCall(char* name, int* argTypes, void** args)
     	if (*type == LOC_SUCCESS) 
         {                 
     		// now extract server name (128 bytes) and server port (2 bytes)
-            cout << "LOC_SUCCESS in rpcCall()" << endl;
             buff = new char[*size]; 
             valread = read(sockfd, buff, *size);
             if(valread < 0)
@@ -340,30 +322,18 @@ int rpcCall(char* name, int* argTypes, void** args)
     		memcpy(server_id, buff, SIZE_IDENTIFIER); 
     		memcpy(server_port, buff+SIZE_IDENTIFIER, SIZE_PORTNO); 
 
-            //cout<<"id:"<<string(server_id)<<endl;
-            //cout<<"port:" << string(server_port) <<endl;
-
             delete [] buff; 
     		close(sockfd);    // close socket between client and binder
 
             // Now connect to target server
     		if (connectServer(server_id, server_port, &sockfd) < 0) 
             {
-                cout << "ERROR in connecting to server" << endl;
-                cout << "error sockfd: " << sockfd << endl; 
-
                 return RPCCALL_FAILURE; 
             }
 
             //before yiyao
             int argLen = getArgsLength(argTypes); 
-            cout << "in rpc call, the lenth is " << argLen << endl; 
-            cout << "after cast" << endl; 
-
-
             int type_len = getTypeLength(argTypes); 
-            cout << "type len" << type_len << endl; 
-
             int messageLen = SIZE_NAME + type_len + argLen; // name, argTypes, args
             int requestType = EXECUTE;
 
@@ -380,13 +350,9 @@ int rpcCall(char* name, int* argTypes, void** args)
             write(sockfd, (void*)buffer, 8 + messageLen); // send EXE request to server
             delete [] buffer;   
 
-
             // wait for reply msg from Server
-            cout<<"step 4"<<endl; 
             valread = read(sockfd, size_buff, 4); // get size
-            cout<<"step 5"<<endl; 
             uint32_t *rpy_size = (uint32_t*)size_buff;
-            cout << "(In rpcCall(), Got sth back from server--size of message: " << *rpy_size << endl;
 
             if(valread < 0)
             {
@@ -402,7 +368,7 @@ int rpcCall(char* name, int* argTypes, void** args)
             {
                 valread = read(sockfd, type_buff, 4); // get type
                 int *rpy_type = (int *)type_buff;
-                cout<< "type:" << *rpy_type << endl;
+
                 if (*rpy_type == EXECUTE_SUCCESS) 
                 {
                     buff = new char[*rpy_size + 8]; 
@@ -415,25 +381,9 @@ int rpcCall(char* name, int* argTypes, void** args)
                         return RPCCALL_FAILURE; 
                     }
 
-                    //pickle(buff, &new_argTypes, &new_args);
-                    // char* new_name = new char[100];
-                    // int len_type = getTypeLength(argTypes);
-                    // int* new_argTypes = new int[len_type];
-                    // int len_args = getArgsLength(argTypes); 
-                    // char *argsBuff = new char[len_args];
-                    // memcpy(argsBuff, buff+SIZE_NAME+len_type, len_args);
-
-                    // void ** new_args = unpickle (argTypes, argsBuff);
-                    // cout << "after unpack: result = " << *((int *)(new_args[0])) << endl;
-                    // memcpy(args, new_args, len_args); 
-                    // //args = new_args;
-                    // close(sockfd);
-
                     int len_type = getTypeLength(argTypes); // type in byte
                     int num_args = getArgNum(argTypes); // arg number 
                     int len_args = getArgsLength(argTypes); // arg in byte 
-                    //char *argsBuff = new char[len_args];
-                    //memcpy(argsBuff, buff + SIZE_NAME+len_type, len_args);
 
                     // Extract new_args from mem block, and override the old args with new_args
                     void **new_args = unpickle(argTypes, buff + SIZE_NAME + len_type);
@@ -442,6 +392,8 @@ int rpcCall(char* name, int* argTypes, void** args)
                     // we are done with rpcCall(), clean up
                     delete [] buff; 
                     close(sockfd);
+
+                    return RPCCALL_SUCCESS;
                 }
                 else if (*rpy_type == EXECUTE_FAILURE) 
                 {
@@ -451,12 +403,14 @@ int rpcCall(char* name, int* argTypes, void** args)
                 else 
                 {
                     close(sockfd);
-                    cout << "should not come here " << endl;
                     return UNKNOW_ERROR;
                 } 
             }  // if(valread > 0)
-        } else {
-            cerr << "Location request failed" << endl;
+        } 
+        else 
+        {
+            perror("Location request failed");
+            return RPCCALL_FAILURE; 
         }
     }
 }
@@ -491,8 +445,6 @@ int rpcExecute(void)
     {
         FD_ZERO(&read_fds); 
         FD_SET(clientSocket, &read_fds); 
-        //FD_SET(binderSocket, &read_fds); 
-        //max_sd = max(clientSocket, binderSocket);  
         max_sd = clientSocket; 
 
         for(int i=0; i < MAX_CLIENTS; ++i)
@@ -523,7 +475,6 @@ int rpcExecute(void)
                 if(clients_sockets[i] == 0)
                 {
                     clients_sockets[i] = new_socket;
-                    cout << i <<" " << new_socket << endl; 
                     break; 
                 }
             }
@@ -547,13 +498,11 @@ int rpcExecute(void)
                 {
                     //cout<<"received something from rpcExecute"<<endl;
                     uint32_t *size = (uint32_t*)size_buff; 
-                    cout << "size:" << *size << endl; 
                     valread = read(sd, type_buff, 4);
                     uint32_t *type = (uint32_t*)type_buff;
 
                     if(*type == EXECUTE)
                     {
-                        cout<<"received EXECUTE"<<endl;
                         buff = new char[*size];
                         if (recv(sd, buff, *size, 0) < 0) 
                         { // rcvMsg = name + argTypes + args
@@ -561,14 +510,8 @@ int rpcExecute(void)
                         }
                         int n = calculate_num(buff+ SIZE_NAME);         // get # of argTypes
                         int args_len = *size - SIZE_NAME - n * 4; 
-
-                        cout << "len n args_len: " << *size << " " << n << " " << args_len << endl;
-                        //specialSock = sd; 
-                        cout << "hello" << endl;
-                        // TODO: still need the definition of search_skel()
                         char * new_buf = new char[SIZE_SOCK + (*size)];
                         int temp_sock = sd;
-
                         clients_sockets[j]=0; 
 
                         memcpy(new_buf, &temp_sock, SIZE_SOCK);
@@ -603,18 +546,14 @@ int rpcExecute(void)
                     }
                     else
                     {
-                        cout << "received type "<< *type <<endl;
                         valread = read(sd, buff, *size);
-                        cout << "value read: "<<valread<<endl; 
                     }
                 } 
             } 
         } 
-
         if (terminate_flag == 1) {
             break; // break  outter loop
         }
-
     } // END while(true) 
 
     // wait for all existed threads to finish
@@ -646,28 +585,19 @@ static void* execute(void* arguments)
     
     skeleton skel_func;
     int exeResult = EXECUTE_FAILURE;            // default: EXECUTE_FAILURE
-    cout << "name: " << string(name) << endl;
-    cout << "argTypes len " << getTypeLength(argTypes) << endl;
-
-    cout<< endl << endl << "Staring server db search:"<<endl; 
-    cout<<name<<endl; 
-    cout<<getArgsLength(argTypes) << endl; 
 
     if (serverDatabase.SearchSkeleton(name, argTypes, &skel_func) == false) 
     { // search in server local DB
-        cerr << "No such skel_func" << endl;
+        perror("No such skel_func");
     } 
     else {
-        cout << "Got desired results" << endl;
         exeResult = skel_func(argTypes, args);
     }
-    
-    //print(args);
-    cout << "exeResult " << exeResult << endl; 
 
     int messageLen; 
     char* buffer;
-    if (exeResult == EXECUTE_SUCCESS) {
+    if (exeResult == EXECUTE_SUCCESS) 
+    {
         char* result_args = new char[args_len]; 
         result_args = pickle(argTypes, args);         // pack "args" into a consecutive mem block for sending
         messageLen = SIZE_NAME + type_len + args_len; // name, argTypes, args
@@ -678,7 +608,8 @@ static void* execute(void* arguments)
         memcpy(buffer+108, argTypes, type_len); 
         memcpy(buffer+108+type_len, result_args, args_len);
 
-    } else {
+    } 
+    else {
         // EXECUTE_FAILURE
         exeResult = EXECUTE_FAILURE;
         int reasonCode = -99; // TODO: is this a good reason code?

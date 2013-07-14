@@ -33,7 +33,7 @@ int connectServer(const char* hostAddr, const char* portno, int *socketnum)
     if ( (he = gethostbyname(hostAddr) ) == NULL ) 
     {
         perror("ERROR gethostbyname");
-        exit(-1);
+        return ERROR_CONNECCTION; 
     }
 
     /* copy the network address to sockaddr_in structure */
@@ -46,18 +46,16 @@ int connectServer(const char* hostAddr, const char* portno, int *socketnum)
     if(*socketnum == 0)
     {
         perror("ERROR socket");
-        exit(-1);
+        return ERROR_CONNECCTION; 
     }
 
     if(connect(*socketnum, (struct sockaddr *)&addr, sizeof(addr))<0)
     {
         perror("ERROR connect");
-        exit(-1);
+        return ERROR_CONNECCTION; 
     }
 
-    cout<<"inside connectServer function, sockfd:" << *socketnum << endl; 
-
-    return 0; //TO-DO change return value, to indicate error
+    return 0; 
 }
 
 
@@ -216,7 +214,6 @@ int main()
                     if(*type == TERMINATE)
                     {
                         terminate = true; 
-                        cout<<"received terminate message"<<endl;
                         unsigned int size = 4; 
                         unsigned int type = TERMINATE; 
                         unsigned int code = BINDER_CODE; 
@@ -277,7 +274,6 @@ int main()
 
                         if(*type == REGISTER)
                         {
-                            cout<<"received register"<<endl;
                             int result = binderRegister(buff, *size, sd); 
                             uint32_t length = 4; 
                             char* sendChar = new char[8 + length];
@@ -352,8 +348,3 @@ int main()
     return 0;
 }
 
-void binderTerminate()
-{
-    
-
-}

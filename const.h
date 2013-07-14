@@ -21,6 +21,7 @@
 #define UNKNOW_REQUEST -7
 #define NO_RPC -8 // no such RPC is registered 
 #define NOT_REGISTER -9 // server didn't call rpcRegister, but call rpcExecute
+#define ERROR_CONNECCTION -10 
 #define CANT_CONNECT_BINDER -16 
 #define UNKNOW_ERROR -20
 
