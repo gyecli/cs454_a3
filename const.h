@@ -2,8 +2,8 @@
 //type
 #define REGISTER 1
 #define LOC_REQUEST 2 
-#define EXECUTE 4  
-#define TERMINATE 5		// added by Tim
+#define EXECUTE 3  
+#define TERMINATE 4		// added by Tim
 
 //success 
 #define REGISTER_SUCCESS 0 
@@ -11,17 +11,19 @@
 #define RPCCALL_SUCCESS 0
 #define EXECUTE_SUCCESS 0
 #define TERMINATE_SUCCESS 0		// may not be necessary
+#define INIT_SUCCESS 0; 
 
 //failure 
 #define LOC_FAILURE -1 
 #define REGISTER_FAILURE -2
-#define EXECUTE_FAILURE -4
-#define RPCCALL_FAILURE -5
-#define TERMINATE_FAILURE -6	// added by Tim
+#define EXECUTE_FAILURE -3
+#define RPCCALL_FAILURE -4
+#define TERMINATE_FAILURE -5	// added by Tim
+#define INIT_FAILURE -6
 #define UNKNOW_REQUEST -7
 #define NO_RPC -8 // no such RPC is registered 
 #define NOT_REGISTER -9 // server didn't call rpcRegister, but call rpcExecute
-#define ERROR_CONNECCTION -10 
+#define ERROR_CONNECTION -10 
 #define CANT_CONNECT_BINDER -16 
 #define UNKNOW_ERROR -20
 

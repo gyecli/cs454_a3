@@ -65,7 +65,7 @@ int connectServer(const char* hostAddr, const char* portno, int *socketnum)
     if ( (he = gethostbyname(hostAddr) ) == NULL ) 
     {
         perror("ERROR gethostbyname");
-        return ERROR_CONNECCTION; 
+        return ERROR_CONNECTION; 
     }
 
     /* copy the network address to sockaddr_in structure */
@@ -78,13 +78,13 @@ int connectServer(const char* hostAddr, const char* portno, int *socketnum)
     if(*socketnum == 0)
     {
         perror("ERROR socket");
-        return ERROR_CONNECCTION;
+        return ERROR_CONNECTION;
     }
 
     if(connect(*socketnum, (struct sockaddr *)&addr, sizeof(addr))<0)
     {
         perror("ERROR connect");
-        return ERROR_CONNECCTION;
+        return ERROR_CONNECTION;
     }
 
     return 0; //TO-DO change return value, to indicate error
@@ -100,14 +100,25 @@ int ConnectBinder(int* sockfd)
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
 
-    // get SERVER_ADDRESS and SERVER_PORT
-    string server = getenv("BINDER_ADDRESS");
-    string server_port = getenv("BINDER_PORT"); 
+    // get BINDER_ADDRESS and BINDER_PORT
+    char* server;
+    char* server_port;
+    if((server = getenv("BINDER_ADDRESS")) == 0)
+    {
+        cerr << "can't get env variable BINDER_ADDRESS" << endl; 
+        return CANT_CONNECT_BINDER; 
+    } 
+    if((server_port = getenv("BINDER_PORT")) == 0)
+    {
+        cerr << "can't get env variable BINDER_PORT" << endl; 
+        return CANT_CONNECT_BINDER;
+    } 
 
-    if ((rv = getaddrinfo(server.c_str(), server_port.c_str(), &hints, &servinfo)) != 0) {
+    if ((rv = getaddrinfo(server, server_port, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 0;
+        return ERROR_CONNECTION;
     }
+
     // loop through all the results and connect to the first we can
     for(p = servinfo; p != NULL; p = p->ai_next) 
     {
@@ -125,16 +136,16 @@ int ConnectBinder(int* sockfd)
     }
     if (p == NULL) 
     {
-
         perror("ERROR: can't connect to binder");
         return CANT_CONNECT_BINDER;
     }
     freeaddrinfo(servinfo); // all done with this structure
+    return 0; 
 }
 
 //Determine the identifier & portno 
 //that will be used for clients 
-void GetSelfID()
+int GetSelfID()
 {
     struct sockaddr_in addr;
     int addrlen; 
@@ -156,14 +167,14 @@ void GetSelfID()
     if(bind(clientSocket, (struct sockaddr *)&addr, sizeof(addr))<0)
     {
         perror("ERROR bind"); 
-        exit(-1);
+        return ERROR_CONNECTION; 
     }
 
     //make this socket a passive one
     if(listen(clientSocket, MAX_CLIENTS))  // max 5 conns
     {
         perror("ERROR listen");
-        exit(-1);
+        return ERROR_CONNECTION; 
     }
 
     if( getsockname(
@@ -173,20 +184,31 @@ void GetSelfID()
          == -1)
     {
         perror("ERROR socketname");
-        exit(-1);
+        return ERROR_CONNECTION; 
     }
     gethostname(hostname, sizeof(hostname));
 
     memcpy(serverID, hostname, SIZE_IDENTIFIER); 
     uint16_t pno = ntohs(addr.sin_port); 
     memcpy(serverPort, (char*)(&pno), SIZE_PORTNO); 
+
+    return 0; 
 }
 
 int rpcInit()
 {
-    GetSelfID();            // Opcen a client socket for incoming clients
-    ConnectBinder(&binderSocket); 
-    return 0; 
+    // Opcen a client socket for incoming clients
+    if ( GetSelfID() < 0)
+    {
+        return INIT_FAILURE; 
+    }
+                
+    if ( ConnectBinder(&binderSocket) < 0 )
+    {
+        return INIT_FAILURE; 
+    } 
+
+    return INIT_SUCCESS; 
 }
 
 int rpcRegister(char* name, int *argTypes, skeleton f)
@@ -209,10 +231,10 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
 
     char size_buff[4];
     valread = read(binderSocket, size_buff, 4);
-
+    uint32_t *type; 
     if(valread < 0)
     {
-        perror("ERROR read from socket, probably due to connection failure");
+        perror("ERROR read from Binder, probably due to connection failure");
         return REGISTER_FAILURE; 
     }
     else if(valread == 0)
@@ -224,39 +246,25 @@ int rpcRegister(char* name, int *argTypes, skeleton f)
         uint32_t *size = (uint32_t*)size_buff; 
         char type_buff[4];
         valread = read(binderSocket, type_buff, 4);
+        type = (uint32_t*)type_buff;
 
-        uint32_t *type = (uint32_t*)type_buff;
-        if(*type == REGISTER_SUCCESS)
+        char *buff = new char[*size]; 
+        valread = read(binderSocket, buff, *size);
+        delete [] buff; 
+
+        if(*type > 0)
         {
-            char warning_buff[4]; 
-
-            valread = read(binderSocket, warning_buff, 4);
-            
-            int* warning = (int*) warning_buff; 
-
-            if(*warning > 0)
+            cout<<"Warning # "<< *type;
+            if(*type == REGISTER_DUPLICATE) 
             {
-                cout<<"Warning # "<< *warning;
-                if(*warning == REGISTER_DUPLICATE) 
-                {
-                    cout<<" : Duplicate Registration";
-                }
-                cout<<endl; 
+                cout<<" : Duplicate Registration";
             }
-        }  
-        else
-        {
-            char error_buff[4]; 
-            valread = read(binderSocket, error_buff, 4);
-            int* error_code = (int*) error_buff; 
-            cout<<"error:"<<*error_code<<endl;
-            return REGISTER_FAILURE; 
+            cout<<endl; 
         }
     }
     //store to local DB
     serverDatabase.Add(name, argTypes, f);
-
-    return REGISTER_SUCCESS; 
+    return *type; 
 }
 
 
@@ -410,7 +418,7 @@ int rpcCall(char* name, int* argTypes, void** args)
         } 
         else 
         {
-            perror("Location request failed");
+            cerr << "Loc_Request failed" << endl;
             return RPCCALL_FAILURE; 
         }
     }
@@ -425,7 +433,7 @@ int rpcExecute(void)
     //check if the server called rpcRegister first
     if(serverDatabase.database.size() == 0)
     {
-        perror("Server hasn't registered anything yet");
+        cerr << "Server hasn't registered anything yet" << endl;
         return NOT_REGISTER;
     }
 
@@ -460,7 +468,7 @@ int rpcExecute(void)
         if (select(max_sd + 1, &read_fds, NULL, NULL, NULL) == -1) 
         {
             perror("ERROR in select in rpcExecute()");
-            exit(4);
+            return ERROR_CONNECTION; 
         }
 
         //incoming connection
@@ -469,6 +477,7 @@ int rpcExecute(void)
             if((new_socket  = accept(clientSocket, (struct sockaddr*)&addr, (socklen_t*)&addrlen))<0)
             {
                 perror("ERROR accept new socket");
+                return ERROR_CONNECTION;
             }
 
             for(int i=0; i<MAX_CLIENTS; ++i)

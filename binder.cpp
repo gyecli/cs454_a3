@@ -33,7 +33,7 @@ int connectServer(const char* hostAddr, const char* portno, int *socketnum)
     if ( (he = gethostbyname(hostAddr) ) == NULL ) 
     {
         perror("ERROR gethostbyname");
-        return ERROR_CONNECCTION; 
+        return ERROR_CONNECTION; 
     }
 
     /* copy the network address to sockaddr_in structure */
@@ -46,13 +46,13 @@ int connectServer(const char* hostAddr, const char* portno, int *socketnum)
     if(*socketnum == 0)
     {
         perror("ERROR socket");
-        return ERROR_CONNECCTION; 
+        return ERROR_CONNECTION; 
     }
 
     if(connect(*socketnum, (struct sockaddr *)&addr, sizeof(addr))<0)
     {
         perror("ERROR connect");
-        return ERROR_CONNECCTION; 
+        return ERROR_CONNECTION; 
     }
 
     return 0; 
@@ -275,26 +275,11 @@ int main()
                         if(*type == REGISTER)
                         {
                             int result = binderRegister(buff, *size, sd); 
-                            uint32_t length = 4; 
+                            uint32_t length = 0; 
                             char* sendChar = new char[8 + length];
-                            int success; 
 
-                            if(result == REGISTER_SUCCESS)
-                            {
-                                success = REGISTER_SUCCESS;
-                                result = 0; 
-                            }
-                            else if(result == REGISTER_DUPLICATE)
-                            {
-                                success = REGISTER_SUCCESS;
-                            }
-                            else
-                            {
-                                success = REGISTER_FAILURE; 
-                            }
                             memcpy(sendChar, (char*)&length, 4); 
-                            memcpy(sendChar + 4, (char*)&success, 4);
-                            memcpy(sendChar + 8, (char*)&result, 4); 
+                            memcpy(sendChar + 4, (char*)&result, 4);
                             send(sd, sendChar, 8 + length, 0); 
                             delete [] sendChar; 
                         }

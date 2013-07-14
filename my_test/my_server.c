@@ -5,7 +5,8 @@
 int main(int argc, char *argv[]) {
 
     /* create sockets and connect to the binder */
-    rpcInit();
+    int a = rpcInit();
+    printf("(%d)\n", a);
 
     /* prepare server functions' signatures */
     int count0 = 3;
@@ -54,71 +55,71 @@ int main(int argc, char *argv[]) {
      * register server functions f0~f4
      */
 
-    printf("f0\n");
+    // printf("f0\n");
 
-    if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
-        printf("success\n");
-    else
-        printf("failure\n");  
+    // if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+    //     printf("success\n");
+    // else
+    //     printf("failure\n");  
 
-    if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
-        printf("success\n");
-    else
-        printf("failure\n");
+    // if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+    //     printf("success\n");
+    // else
+    //     printf("failure\n");
 
-    if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
-        printf("success\n");
-    else
-        printf("failure\n");
+    // if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+    //     printf("success\n");
+    // else
+    //     printf("failure\n");
 
-    if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
-        printf("success\n");
-    else
-        printf("failure\n");
+    // if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+    //     printf("success\n");
+    // else
+    //     printf("failure\n");
 
-    if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
-        printf("success\n");
-    else
-        printf("failure\n");
-      if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
-        printf("success\n");
-    else
-        printf("failure\n");
-      if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
-        printf("success\n");
-    else
-        printf("failure\n");
-      if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
-        printf("success\n");
-    else
-        printf("failure\n");
-      if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
-        printf("success\n");
-    else
-        printf("failure\n");
-      if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
-        printf("success\n");
-    else
-        printf("failure\n");
-      if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
-        printf("success\n");
-    else
-        printf("failure\n");
-      if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
-        printf("success\n");
-    else
-        printf("failure\n");
+    // if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+    //     printf("success\n");
+    // else
+    //     printf("failure\n");
+    //   if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+    //     printf("success\n");
+    // else
+    //     printf("failure\n");
+    //   if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+    //     printf("success\n");
+    // else
+    //     printf("failure\n");
+    //   if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+    //     printf("success\n");
+    // else
+    //     printf("failure\n");
+    //   if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+    //     printf("success\n");
+    // else
+    //     printf("failure\n");
+    //   if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+    //     printf("success\n");
+    // else
+    //     printf("failure\n");
+    //   if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+    //     printf("success\n");
+    // else
+    //     printf("failure\n");
+    //   if(rpcRegister("f0", argTypes0, *f0_Skel) == 0)
+    //     printf("success\n");
+    // else
+    //     printf("failure\n");
 
-    printf("\n\nf1\n");
+    // printf("\n\nf1\n");
 
-    if(rpcRegister("f1", argTypes1, *f1_Skel) == 0)
-        printf("success\n");
-    else
-        printf("failure\n"); 
-    if(rpcRegister("f1", argTypes1, *f1_Skel) == 0)
-        printf("success\n");
-    else
-        printf("failure\n"); 
+    // if(rpcRegister("f1", argTypes1, *f1_Skel) == 0)
+    //     printf("success\n");
+    // else
+    //     printf("failure\n"); 
+    // if(rpcRegister("f1", argTypes1, *f1_Skel) == 0)
+    //     printf("success\n");
+    // else
+    //     printf("failure\n"); 
 
 
     printf("\n\nf2\n");
@@ -135,7 +136,7 @@ int main(int argc, char *argv[]) {
     else
         printf("failure\n");
 
-argTypes2[0] = (1 << ARG_OUTPUT) | (ARG_CHAR << 16) | 1;
+    argTypes2[0] = (1 << ARG_OUTPUT) | (ARG_CHAR << 16) | 1;
 
     if(rpcRegister("f2", argTypes2, *f2_Skel) == 0)
         printf("success\n");

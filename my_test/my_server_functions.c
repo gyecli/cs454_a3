@@ -6,14 +6,14 @@
 
 /* return: OUT; a, b: IN */
 int f0(int a, int b) {
-
+  sleep(1);
   return a + b;
 }   
 
 
 /* returns: OUT; a, b, c, d: IN */
 long f1(char a, short b, int c, long d) {
-
+  sleep(1);
   return a + b * c - d;
 }
 
@@ -24,6 +24,7 @@ long f1(char a, short b, int c, long d) {
 
 char* f2(float a, double b) {
 
+  sleep(2);
   float ai;
   double bi;
   char *str1;
@@ -48,6 +49,7 @@ char* f2(float a, double b) {
 
 void f3(long a[]) {
 
+  sleep(5);
   int len = a[0];
   int i, j, k;
 
@@ -68,6 +70,6 @@ void f3(long a[]) {
  */
 
 void f4(char a[]) {
-
+  sleep(4);
   /* print file a to a printer */
 }
